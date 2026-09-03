@@ -1,0 +1,8 @@
+{
+  "name": "DemicubeOS",
+  "description": "Interactive cybersecurity simulation platform with realistic OS emulation, terminal gameplay, and mission-based learning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "id": "admin",
+      "username": "admin",
+      "password": "admin",
+      "role": "admin",
+      "permissions": ["full"],
+      "homeDir": "/home/admin",
+      "systemId": "192.168.56.101"
+    }
+  ]
+}

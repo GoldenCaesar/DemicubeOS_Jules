@@ -1,0 +1,24 @@
+{
+  "home": {
+    "admin": {
+      "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, admin. This is the DemicubeOS test computer." }
+    }
+  },
+  "documents": {
+    "mission-brief.txt": { "type": "file", "format": "text", "content": "Test computer mission files." },
+    "example.py": { "type": "file", "format": "py", "content": "print('DemicubeOS ready')" }
+  },
+  "programs": {},
+  "music": {
+    "song1.mp3": { "type": "file", "format": "audio", "name": "song1.mp3", "source": "./music/song1.mp3" },
+    "song2.mp3": { "type": "file", "format": "audio", "name": "song2.mp3", "source": "./music/song2.mp3" }
+  },
+  "log": {
+    "boot.log": { "type": "file", "format": "text", "content": "DemicubeOS boot completed." }
+  },
+  "sys": {
+    "wallpaper.bin": { "type": "file", "format": "binary" },
+    "theme.bin": { "type": "file", "format": "binary" },
+    "kernel.sys": { "type": "file", "format": "binary" }
+  }
+}

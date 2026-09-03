@@ -1,0 +1,10 @@
+{
+  "id": "tutorial-boot",
+  "title": "Boot Orientation",
+  "summary": "Placeholder tutorial mission that starts after desktop boot.",
+  "objectives": [
+    "Observe boot sequence",
+    "Use Alt+A and Alt+D to cycle focused windows",
+    "Run 'help' command in terminal bar"
+  ]
+}

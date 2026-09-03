@@ -1,0 +1,24 @@
+{
+  "id": "192.168.56.101",
+  "ip": "192.168.56.101",
+  "hostname": "demicube-testbox",
+  "os": {
+    "name": "DemicubeOS",
+    "version": "0.1.0",
+    "kernel": "6.6.0-demicube"
+  },
+  "ramMb": 16384,
+  "theme": "kali",
+  "filesystem": "filesystem.json",
+  "users": "users.json",
+  "programs": [
+    { "id": "codepad-plus", "name": "CodePad+", "fileName": "CodePad+", "ramMb": 500 },
+    { "id": "clawder-python", "name": "Clawder Python", "fileName": "clawder-python", "ramMb": 3072 },
+    { "id": "music-player", "name": "Music Player", "fileName": "music-player", "ramMb": 1740 }
+  ],
+  "ports": [
+    { "port": 22, "protocol": "tcp", "service": "ssh", "state": "open" },
+    { "port": 80, "protocol": "tcp", "service": "http", "state": "open" },
+    { "port": 443, "protocol": "tcp", "service": "https", "state": "closed" }
+  ]
+}

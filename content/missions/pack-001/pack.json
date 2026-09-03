@@ -1,0 +1,8 @@
+{
+  "id": "pack-001",
+  "name": "Foundations",
+  "version": "0.1.0",
+  "missions": [
+    "tutorial-boot"
+  ]
+}

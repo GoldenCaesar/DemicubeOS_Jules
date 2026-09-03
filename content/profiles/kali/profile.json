@@ -1,0 +1,7 @@
+{
+  "id": "kali",
+  "name": "Kali Linux",
+  "themeCss": "src/styles/themes/kali.css",
+  "promptUser": "student",
+  "promptHost": "kali"
+}

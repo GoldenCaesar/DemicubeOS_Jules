@@ -1,0 +1,11 @@
+{
+  "commands": [
+    "help",
+    "clear",
+    "echo",
+    "date",
+    "whoami",
+    "windows",
+    "focus"
+  ]
+}
