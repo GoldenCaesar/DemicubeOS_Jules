@@ -5,42 +5,62 @@ export function createDesktopShell(rootElement, profile) {
     "    <pre id=\"boot-log\" class=\"boot-log\"></pre>",
     "  </section>",
     "  <section id=\"crash-screen\" class=\"crash-screen hidden\">",
-    "    <div class=\"crash-bg\">",
-    "      <div class=\"crash-content\">",
-    "        <div class=\"crash-left\">",
-    "          <div class=\"crash-header\">",
-    "            <div class=\"crash-title\"><span id=\"crash-os-name\">DEMICUBEOS</span> KERNEL_PANIC</div>",
-    "            <p class=\"crash-subtitle\" id=\"crash-message\">System encountered an unrecoverable error and was forced to halt.</p>",
-    "          </div>",
-    "          <div class=\"crash-details\">",
-    "            <div class=\"crash-section\">",
-    "              <div class=\"crash-label\">STOP CODE:</div>",
-    "              <div class=\"crash-value\" id=\"crash-stop-code\">CRITICAL_SECURITY_VIOLATION_0x0000007E</div>",
-    "            </div>",
-    "            <div class=\"crash-section\">",
-    "              <div class=\"crash-label\">Faulting Module:</div>",
-    "              <div class=\"crash-value\">libenclave_crypto.so+0x4a9f</div>",
-    "            </div>",
-    "            <div class=\"crash-section\">",
-    "              <div class=\"crash-label\">Physical Memory Core Dump:</div>",
-    "              <div id=\"crash-dump-progress\" class=\"crash-dump-bar\"><div class=\"crash-dump-fill\"></div></div>",
-    "              <div class=\"crash-dump-text\"><span id=\"crash-dump-pct\">0%</span> | <span id=\"crash-dump-info\">0 MB / 16384 MB</span></div>",
-    "            </div>",
-    "          </div>",
-    "          <div class=\"crash-footer\">",
-    "            <p class=\"crash-footer-text\">System will automatically reboot...</p>",
-    "          </div>",
+    "    <div class=\"crash-container\">",
+    "      <div class=\"crash-sad-face\">:(</div>",
+    "      <div class=\"crash-message-block\">",
+    "        <h1 class=\"crash-oops-title\">Oops! Your PC ran into a problem and needs to restart.</h1>",
+    "        <p class=\"crash-oops-subtitle\">We're just collecting some error info, and then we'll restart for you.</p>",
+    "      </div>",
+    "      <div class=\"crash-progress-block\">",
+    "        <div class=\"crash-dump-row\"><span id=\"crash-dump-pct\">0%</span> complete</div>",
+    "        <div id=\"crash-dump-progress\" class=\"crash-dump-bar\">",
+    "          <div class=\"crash-dump-fill\"></div>",
     "        </div>",
-    "        <div class=\"crash-right\">",
-    "          <div class=\"crash-sad-face\">:(</div>",
-    "          <div class=\"crash-error-message\">",
-    "            <p><strong>Your PC ran into a problem and needs to restart.</strong></p>",
-    "            <p>We're just collecting some error info, and then we'll restart for you.</p>",
-    "            <p style=\"margin-top: 20px;\">For more information about this issue and possible fixes, visit</p>",
-    "            <p style=\"font-weight: bold;\"><span id=\"crash-url-osname\">demicubeos</span>.com</p>",
+    "        <div class=\"crash-dump-stats\"><span id=\"crash-dump-info\">0 MB / 16384 MB</span> dumped</div>",
+    "      </div>",
+    "      <div class=\"crash-details-row\">",
+    "        <div class=\"crash-qr-container\">",
+    "          <svg class=\"crash-qr-icon\" viewBox=\"0 0 100 100\" fill=\"currentColor\" xmlns=\"http://www.w3.org/2000/svg\">",
+    "            <rect width=\"100\" height=\"100\" fill=\"#ffffff\"/>",
+    "            <rect x=\"8\" y=\"8\" width=\"28\" height=\"28\" fill=\"#0078d7\"/>",
+    "            <rect x=\"14\" y=\"14\" width=\"16\" height=\"16\" fill=\"#ffffff\"/>",
+    "            <rect x=\"18\" y=\"18\" width=\"8\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"64\" y=\"8\" width=\"28\" height=\"28\" fill=\"#0078d7\"/>",
+    "            <rect x=\"70\" y=\"14\" width=\"16\" height=\"16\" fill=\"#ffffff\"/>",
+    "            <rect x=\"74\" y=\"18\" width=\"8\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"8\" y=\"64\" width=\"28\" height=\"28\" fill=\"#0078d7\"/>",
+    "            <rect x=\"14\" y=\"70\" width=\"16\" height=\"16\" fill=\"#ffffff\"/>",
+    "            <rect x=\"18\" y=\"74\" width=\"8\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"42\" y=\"12\" width=\"6\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"52\" y=\"16\" width=\"6\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"42\" y=\"26\" width=\"6\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"50\" y=\"32\" width=\"8\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"16\" y=\"44\" width=\"8\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"30\" y=\"42\" width=\"6\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"44\" y=\"46\" width=\"12\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"64\" y=\"44\" width=\"8\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"78\" y=\"42\" width=\"14\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"42\" y=\"62\" width=\"6\" height=\"12\" fill=\"#0078d7\"/>",
+    "            <rect x=\"54\" y=\"58\" width=\"8\" height=\"6\" fill=\"#0078d7\"/>",
+    "            <rect x=\"66\" y=\"62\" width=\"8\" height=\"14\" fill=\"#0078d7\"/>",
+    "            <rect x=\"80\" y=\"58\" width=\"12\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"44\" y=\"80\" width=\"8\" height=\"12\" fill=\"#0078d7\"/>",
+    "            <rect x=\"58\" y=\"78\" width=\"12\" height=\"8\" fill=\"#0078d7\"/>",
+    "            <rect x=\"76\" y=\"78\" width=\"16\" height=\"14\" fill=\"#0078d7\"/>",
+    "          </svg>",
+    "        </div>",
+    "        <div class=\"crash-support-info\">",
+    "          <p class=\"crash-support-headline\">For more information about this issue and possible fixes, visit <span class=\"crash-support-link\">https://<span id=\"crash-url-osname\">demicubeos</span>.com/stopcode</span></p>",
+    "          <p class=\"crash-support-call\">If you call a support person, give them this info:</p>",
+    "          <div class=\"crash-support-metadata\">",
+    "            <p>Stop code: <span id=\"crash-stop-code\" class=\"crash-code-val\">CRITICAL_PROCESS_DIED</span></p>",
+    "            <p>What failed: <span id=\"crash-fault-module\" class=\"crash-code-val\">demicube_kernel.sys</span></p>",
+    "            <p id=\"crash-message-line\">Failure reason: <span id=\"crash-message\" class=\"crash-code-val\">System encountered an unrecoverable error</span></p>",
+    "            <p class=\"crash-os-tag\">Operating system: <span id=\"crash-os-name\">DEMICUBEOS</span></p>",
     "          </div>",
     "        </div>",
     "      </div>",
+    "      <div class=\"crash-footer-note\">System will automatically reboot shortly...</div>",
     "    </div>",
     "  </section>",
     "  <section id=\"desktop-screen\" class=\"desktop-screen hidden\" aria-label=\"Desktop\">",
@@ -51,7 +71,7 @@ export function createDesktopShell(rootElement, profile) {
     "    <section id=\"files-window\" class=\"files-window window-surface\" data-window-id=\"files\">",
     "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Files</div><div id=\"files-path\" class=\"focus-label\">/</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
     "      <div class=\"files-toolbar\"><button data-files-action=\"back\">&lt;</button><button data-files-action=\"up\">^</button><button data-files-action=\"refresh\">R</button><input id=\"files-url\" aria-label=\"File path\" value=\"/\" /></div>",
-    "      <div class=\"files-workspace\"><aside class=\"files-sidebar\"><strong>Places</strong><button data-files-path=\"/\">Root /</button><button data-files-path=\"/home\">Home</button><button data-files-path=\"/documents\">Documents</button><button data-files-path=\"/programs\">Programs</button><button data-files-path=\"/music\">Music</button><button data-files-path=\"/log\">Logs</button><button data-files-path=\"/sys\">System</button></aside><div class=\"files-content\"><div id=\"files-breadcrumbs\" class=\"files-breadcrumbs\"></div>",
+    "      <div class=\"files-workspace\"><aside class=\"files-sidebar\"><strong>Places</strong><button data-files-path=\"/\">Root /</button><button data-files-path=\"/home\">Home</button><button data-files-path=\"/documents\">Documents</button><button data-files-path=\"/programs\">Programs</button><button data-files-path=\"/music\">Music</button><button data-files-path=\"/var/log\">Logs</button><button data-files-path=\"/sys\">System</button></aside><div class=\"files-content\"><div id=\"files-breadcrumbs\" class=\"files-breadcrumbs\"></div>",
     "      <div id=\"files-list\" class=\"files-list\"></div>",
     "      <pre id=\"file-preview\" class=\"file-preview hidden\"></pre>",
     "      </div></div>",
@@ -90,13 +110,43 @@ export function createDesktopShell(rootElement, profile) {
     "      <div class=\"music-workspace\"><aside class=\"music-sidebar\"><strong>Library</strong><button class=\"active\" data-music-view=\"all\">Now Playing</button><small>/music mounted</small></aside><div class=\"music-main\"><div class=\"music-hero\"><div class=\"music-art\">◈</div><div><h2 id=\"music-track-title\">No track selected</h2><p>Virtual audio library · DemicubeOS</p><div class=\"music-visualizer\"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div><div id=\"music-tracks\" class=\"music-tracks\"></div></div></div>",
     "      <div class=\"music-now-playing\"><span id=\"music-status\">No track selected</span><div class=\"music-controls\"><button data-music-control=\"shuffle\" title=\"Shuffle\">⇄</button><button data-music-control=\"previous\" title=\"Previous\">|&lt;</button><button id=\"music-play\" data-music-control=\"play\" class=\"music-play\" title=\"Play\">▶</button><button data-music-control=\"next\" title=\"Next\">&gt;|</button><button data-music-control=\"repeat\" title=\"Repeat\">↻</button></div><input id=\"music-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" /><label class=\"music-volume\">VOL <input id=\"music-volume\" type=\"range\" min=\"0\" max=\"1\" step=\"0.01\" value=\"0.82\" /></label></div>",
     "    </section>",
+    "    <section id=\"zenmap-window\" class=\"app-window window-surface hidden zenmap-window\" data-window-id=\"zenmap\">",
+    "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Zenmap 7.94 <span class=\"system-badge\">NETWORK TOPOLOGY MAPPER</span></div><div class=\"focus-label\" id=\"zenmap-title-label\">Data: /documents/zenmap/savedata.ini</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
+    "      <div class=\"zenmap-toolbar\"><div class=\"zenmap-tool-group\"><label for=\"zenmap-target\">Target:</label><input id=\"zenmap-target\" class=\"zenmap-input\" type=\"text\" value=\"192.168.56.0/24, 10.0.0.0/16, 172.16.5.0/24\" spellcheck=\"false\" title=\"CLI: zenmap target <cidr>\" /></div><div class=\"zenmap-tool-group\"><label for=\"zenmap-profile\">Profile:</label><select id=\"zenmap-profile\" class=\"zenmap-select\" title=\"CLI: zenmap profile <profile>\"><option value=\"intense\">Intense scan, all TCP ports</option><option value=\"quick\">Quick traceroute &amp; sweep</option><option value=\"ping\">Ping scan</option><option value=\"regular\">Regular scan</option></select></div><button id=\"zenmap-scan-btn\" class=\"zenmap-scan-button\" title=\"Run scan &amp; update savedata.ini [CLI: zenmap scan]\">Scan</button><span class=\"zenmap-cli-hint\">CLI: <code>zenmap [command]</code></span></div>",
+    "      <div id=\"zenmap-status-banner\" class=\"zenmap-status-bar\"><strong>Status:</strong> 9/9 hosts online · Latency: 0.8ms avg · Data: /documents/zenmap/savedata.ini</div>",
+    "      <div class=\"zenmap-nav-tabs\"><button class=\"zenmap-tab-btn active\" data-zenmap-tab=\"topology\" title=\"CLI: zenmap tab topology\">Topology (Node Map)</button><button class=\"zenmap-tab-btn\" data-zenmap-tab=\"hosts\" title=\"CLI: zenmap tab hosts\">Hosts (9)</button><button class=\"zenmap-tab-btn\" data-zenmap-tab=\"services\" title=\"CLI: zenmap tab services\">Services</button><button class=\"zenmap-tab-btn\" data-zenmap-tab=\"nmap-output\" title=\"CLI: zenmap tab output\">Nmap Output</button></div>",
+    "      <div class=\"zenmap-content-area\">",
+    "        <div id=\"zenmap-view-topology\" class=\"zenmap-tab-view zenmap-topology-view\">",
+    "          <div class=\"zenmap-subbar\"><div class=\"zenmap-filter-group\"><span class=\"zenmap-subbar-label\">Subnet Filter:</span><button class=\"zenmap-pill active\" data-zenmap-filter=\"all\" title=\"CLI: zenmap filter all\">All Subnets (9)</button><button class=\"zenmap-pill\" data-zenmap-filter=\"192.168.56.0/24\" title=\"CLI: zenmap filter local\">Local Subnet (192.168.56.x)</button><button class=\"zenmap-pill\" data-zenmap-filter=\"10.0.0.0/16\" title=\"CLI: zenmap filter internal\">Internal Subnet (10.0.x)</button><button class=\"zenmap-pill\" data-zenmap-filter=\"remote\" title=\"CLI: zenmap filter remote\">Remote WAN &amp; Relay</button></div><div class=\"zenmap-layout-group\"><span class=\"zenmap-subbar-label\">Layout:</span><button class=\"zenmap-pill active\" data-zenmap-layout=\"radial\" title=\"CLI: zenmap layout radial\">Radial Ring</button><button class=\"zenmap-pill\" data-zenmap-layout=\"tree\" title=\"CLI: zenmap layout tree\">Tree / Flow</button></div></div>",
+    "          <div class=\"zenmap-workspace\"><div class=\"zenmap-canvas-container\"><svg id=\"zenmap-topology-svg\" class=\"zenmap-svg-canvas\" viewBox=\"0 0 860 520\" preserveAspectRatio=\"xMidYMid meet\"></svg><div class=\"zenmap-radar-sweep\"></div><div class=\"zenmap-controls\"><button id=\"zenmap-zoom-in\" class=\"zenmap-zoom-btn\" title=\"Zoom In [CLI: zenmap zoom in]\">+</button><button id=\"zenmap-zoom-out\" class=\"zenmap-zoom-btn\" title=\"Zoom Out [CLI: zenmap zoom out]\">-</button><button id=\"zenmap-zoom-reset\" class=\"zenmap-zoom-btn\" title=\"Reset View [CLI: zenmap zoom reset]\">Fit</button></div></div><aside id=\"zenmap-host-inspector\" class=\"zenmap-inspector-panel\"></aside></div>",
+    "        </div>",
+    "        <div id=\"zenmap-view-hosts\" class=\"zenmap-tab-view hidden\"><div class=\"zenmap-table-header-bar\"><button id=\"zenmap-btn-add-host\" class=\"zenmap-mini-btn zenmap-action-add\" title=\"Add host to savedata.ini [CLI: zenmap add <ip> <hostname>]\">+ Add Host</button><span class=\"zenmap-table-note\">Data source: <code id=\"zenmap-table-data-path\">/documents/zenmap/savedata.ini</code></span></div><div class=\"zenmap-table-wrapper\"><table class=\"zenmap-table\"><thead><tr><th>HOSTNAME</th><th>IP ADDRESS</th><th>STATUS</th><th>LATENCY</th><th>OPEN PORTS</th><th>OPERATING SYSTEM</th><th>ROLE</th><th>ACTIONS</th></tr></thead><tbody id=\"zenmap-hosts-tbody\"></tbody></table></div></div>",
+    "        <div id=\"zenmap-view-services\" class=\"zenmap-tab-view hidden\"><div id=\"zenmap-services-list\" class=\"zenmap-services-grid\"></div></div>",
+    "        <div id=\"zenmap-view-output\" class=\"zenmap-tab-view hidden\"><pre id=\"zenmap-raw-output\" class=\"zenmap-output-pre\"></pre></div>",
+    "      </div>",
+    "    </section>",
     "    <section class=\"terminal-window window-surface\" data-window-id=\"terminal-main\">",
     "      <header class=\"terminal-titlebar window-titlebar\">",
-    "        <div class=\"title-left\">Terminal - " + profile.promptUser + "@" + profile.promptHost + ":~</div>",
+    "        <div class=\"title-left\" id=\"terminal-title-text\">Terminal - " + profile.promptUser + "@" + profile.promptHost + ":~</div>",
     "        <div id=\"focus-label\" class=\"focus-label\"></div>",
     "        <div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div>",
     "      </header>",
     "      <pre id=\"terminal-monitor\" class=\"terminal-monitor\"></pre>",
+    "      <div id=\"terminal-nano-container\" class=\"terminal-nano hidden\">",
+    "        <div class=\"nano-header\">",
+    "          <span class=\"nano-app-title\">GNU nano 7.2</span>",
+    "          <span id=\"nano-file-path\" class=\"nano-file-path\">/var/log/auth.log</span>",
+    "          <span id=\"nano-modified\" class=\"nano-modified\"></span>",
+    "        </div>",
+    "        <textarea id=\"nano-editor-textarea\" class=\"nano-textarea\" spellcheck=\"false\"></textarea>",
+    "        <div id=\"nano-status-bar\" class=\"nano-status-bar\">[ Read 0 lines ]</div>",
+    "        <div class=\"nano-footer\">",
+    "          <button type=\"button\" id=\"nano-btn-writeout\" class=\"nano-shortcut\" title=\"Save file (^O)\"><span>^O</span> WriteOut</button>",
+    "          <button type=\"button\" id=\"nano-btn-exit\" class=\"nano-shortcut\" title=\"Exit editor (^X)\"><span>^X</span> Exit</button>",
+    "          <button type=\"button\" id=\"nano-btn-cut\" class=\"nano-shortcut\" title=\"Cut line (^K)\"><span>^K</span> Cut Line</button>",
+    "          <button type=\"button\" id=\"nano-btn-help\" class=\"nano-shortcut\" title=\"Help (^G)\"><span>^G</span> Help</button>",
+    "        </div>",
+    "      </div>",
     "      <div class=\"terminal-input-row\">",
     "        <span class=\"prompt\" id=\"window-prompt-prefix\"></span>",
     "        <span class=\"command-input\" id=\"window-command-input\"></span>",
@@ -121,6 +171,7 @@ export function createDesktopShell(rootElement, profile) {
   const crashUrlOsName = document.getElementById("crash-url-osname");
   const crashMessage = document.getElementById("crash-message");
   const crashStopCode = document.getElementById("crash-stop-code");
+  const crashFaultModule = document.getElementById("crash-fault-module");
   const crashDumpFill = document.querySelector(".crash-dump-fill");
   const crashDumpPct = document.getElementById("crash-dump-pct");
   const crashDumpInfo = document.getElementById("crash-dump-info");
@@ -174,6 +225,104 @@ export function createDesktopShell(rootElement, profile) {
   const userTextColor = document.getElementById("user-text-color");
   const userTextColorHex = document.getElementById("user-text-color-hex");
   const terminalWindow = document.querySelector(".terminal-window");
+  const terminalTitleText = document.getElementById("terminal-title-text");
+  const terminalNanoContainer = document.getElementById("terminal-nano-container");
+  const nanoFilePath = document.getElementById("nano-file-path");
+  const nanoTextarea = document.getElementById("nano-editor-textarea");
+  const nanoStatusBar = document.getElementById("nano-status-bar");
+  const nanoModified = document.getElementById("nano-modified");
+  const nanoBtnWriteout = document.getElementById("nano-btn-writeout");
+  const nanoBtnExit = document.getElementById("nano-btn-exit");
+  const nanoBtnCut = document.getElementById("nano-btn-cut");
+  const nanoBtnHelp = document.getElementById("nano-btn-help");
+
+  let nanoCurrentPath = "";
+  let nanoSaveHandler = null;
+  let nanoExitHandler = null;
+
+  if (nanoTextarea) {
+    nanoTextarea.addEventListener("input", () => {
+      nanoModified.textContent = "Modified";
+    });
+
+    const triggerNanoSave = () => {
+      if (nanoSaveHandler) {
+        const lines = nanoTextarea.value.split("\n").length;
+        nanoSaveHandler(nanoCurrentPath, nanoTextarea.value);
+        nanoModified.textContent = "";
+        nanoStatusBar.textContent = `[ Wrote ${lines} lines ]`;
+      }
+    };
+
+    const triggerNanoExit = () => {
+      closeNano();
+      if (nanoExitHandler) nanoExitHandler();
+    };
+
+    nanoBtnWriteout?.addEventListener("click", triggerNanoSave);
+    nanoBtnExit?.addEventListener("click", triggerNanoExit);
+    nanoBtnCut?.addEventListener("click", () => {
+      const pos = nanoTextarea.selectionStart;
+      const val = nanoTextarea.value;
+      const start = val.lastIndexOf("\n", pos - 1) + 1;
+      let end = val.indexOf("\n", pos);
+      if (end === -1) end = val.length;
+      else end += 1;
+      nanoTextarea.value = val.slice(0, start) + val.slice(end);
+      nanoTextarea.setSelectionRange(start, start);
+      nanoModified.textContent = "Modified";
+      nanoStatusBar.textContent = "[ Cut 1 line ]";
+    });
+    nanoBtnHelp?.addEventListener("click", () => {
+      nanoStatusBar.textContent = "[ Nano Help: ^O WriteOut / Save, ^X Exit, ^K Cut Line ]";
+    });
+
+    nanoTextarea.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        triggerNanoSave();
+      } else if (e.ctrlKey && (e.key === "x" || e.key === "X")) {
+        e.preventDefault();
+        triggerNanoExit();
+      } else if (e.ctrlKey && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        nanoBtnCut?.click();
+      }
+    });
+  }
+
+  function openNano(path, content, onSave, onExit) {
+    nanoCurrentPath = path;
+    nanoSaveHandler = onSave;
+    nanoExitHandler = onExit;
+    if (nanoFilePath) nanoFilePath.textContent = path;
+    if (nanoTextarea) {
+      nanoTextarea.value = content || "";
+      const lines = (content || "").split("\n").length;
+      if (nanoStatusBar) nanoStatusBar.textContent = `[ Read ${lines} lines ]`;
+      if (nanoModified) nanoModified.textContent = "";
+    }
+    terminalMonitor.classList.add("hidden");
+    const inputRow = document.querySelector(".terminal-input-row");
+    if (inputRow) inputRow.classList.add("hidden");
+    if (terminalNanoContainer) terminalNanoContainer.classList.remove("hidden");
+    nanoTextarea?.focus();
+  }
+
+  function closeNano() {
+    if (terminalNanoContainer) terminalNanoContainer.classList.add("hidden");
+    terminalMonitor.classList.remove("hidden");
+    const inputRow = document.querySelector(".terminal-input-row");
+    if (inputRow) inputRow.classList.remove("hidden");
+  }
+
+  function isNanoOpen() {
+    return terminalNanoContainer && !terminalNanoContainer.classList.contains("hidden");
+  }
+
+  function setTerminalTitle(title) {
+    if (terminalTitleText) terminalTitleText.textContent = title;
+  }
   let desktopFocusHandler = null;
   let logoutHandler = null;
   let systemKillHandler = null;
@@ -223,6 +372,7 @@ export function createDesktopShell(rootElement, profile) {
   function showDesktop() {
     loginScreen.classList.add("hidden");
     bootScreen.classList.add("hidden");
+    crashScreen.classList.add("hidden");
     desktopScreen.classList.remove("hidden");
   }
 
@@ -257,23 +407,32 @@ export function createDesktopShell(rootElement, profile) {
     taskbarCommandInput.textContent = commandBuffer;
   }
 
+  let terminalChangeHandler = null;
+  function onTerminalChange(handler) {
+    terminalChangeHandler = handler;
+  }
+
   function appendTerminalLine(line) {
     const element = document.createElement("div");
     element.textContent = line;
     terminalMonitor.append(element);
-    while (terminalMonitor.children.length > 120) terminalMonitor.firstElementChild.remove();
+    while (terminalMonitor.children.length > 500) terminalMonitor.firstElementChild.remove();
     terminalMonitor.scrollTop = terminalMonitor.scrollHeight;
+    if (terminalChangeHandler) terminalChangeHandler();
   }
 
   function clearTerminal() {
     terminalMonitor.textContent = "";
+    if (terminalChangeHandler) terminalChangeHandler();
   }
   function appendTerminalInput(line) {
     const element = document.createElement("div");
     element.className = "terminal-user-line";
     element.textContent = line;
     terminalMonitor.append(element);
+    while (terminalMonitor.children.length > 500) terminalMonitor.firstElementChild.remove();
     terminalMonitor.scrollTop = terminalMonitor.scrollHeight;
+    if (terminalChangeHandler) terminalChangeHandler();
   }
 
   function setUserTextColor(color) {
@@ -368,25 +527,37 @@ export function createDesktopShell(rootElement, profile) {
   function showBootScreen() {
     bootLog.textContent = "";
     desktopScreen.classList.add("hidden");
+    crashScreen.classList.add("hidden");
+    loginScreen.classList.add("hidden");
     bootScreen.classList.remove("hidden");
   }
 
-  function showCrashScreen(osName) {
+  function showCrashScreen(osName, details = {}) {
     desktopScreen.classList.add("hidden");
     bootScreen.classList.add("hidden");
+    loginScreen.classList.add("hidden");
     crashScreen.classList.remove("hidden");
-    crashOsName.textContent = osName.toUpperCase();
-    crashUrlOsName.textContent = osName.toLowerCase();
-    crashMessage.textContent = osName + " encountered an unrecoverable security enclave violation and was forced to halt execution.";
-    crashDumpFill.style.width = "0%";
-    crashDumpPct.textContent = "0%";
-    crashDumpInfo.textContent = "0 MB / 16384 MB";
+    const nameStr = (osName || profile?.distroName || "DEMICUBEOS").toString();
+    if (crashOsName) crashOsName.textContent = nameStr.toUpperCase();
+    if (crashUrlOsName) crashUrlOsName.textContent = nameStr.toLowerCase();
+    const stopCode = details.stopCode || (details.reason === "out_of_memory" ? "SYSTEM_RESOURCE_EXHAUSTION_0x00000101" : "CRITICAL_PROCESS_DIED_0x000000EF");
+    const faultModule = details.faultModule || (details.reason === "out_of_memory" ? "mm_allocator.sys" : "libenclave_crypto.so+0x4a9f");
+    const message = details.message || (details.reason === "out_of_memory"
+      ? "Physical RAM usage reached 100%. The system was forced to halt to prevent data corruption."
+      : nameStr + " encountered an unrecoverable security enclave violation and was forced to halt execution.");
+    if (crashStopCode) crashStopCode.textContent = stopCode;
+    if (crashFaultModule) crashFaultModule.textContent = faultModule;
+    if (crashMessage) crashMessage.textContent = message;
+    if (crashDumpFill) crashDumpFill.style.width = "0%";
+    if (crashDumpPct) crashDumpPct.textContent = "0%";
+    const totalMem = details.totalMem || 16384;
+    if (crashDumpInfo) crashDumpInfo.textContent = "0 MB / " + totalMem + " MB";
   }
 
-  function updateCrashDump(percent, dumpedMb) {
-    crashDumpFill.style.width = percent + "%";
-    crashDumpPct.textContent = percent + "%";
-    crashDumpInfo.textContent = dumpedMb + " MB / 16384 MB";
+  function updateCrashDump(percent, dumpedMb, totalMb = 16384) {
+    if (crashDumpFill) crashDumpFill.style.width = percent + "%";
+    if (crashDumpPct) crashDumpPct.textContent = percent + "%";
+    if (crashDumpInfo) crashDumpInfo.textContent = dumpedMb + " MB / " + totalMb + " MB";
   }
 
   function renderFiles(path, entries) {
@@ -696,6 +867,7 @@ export function createDesktopShell(rootElement, profile) {
     setPrompt,
     appendTerminalLine,
     appendTerminalInput,
+    onTerminalChange,
     clearTerminal,
     setTerminalVisible,
     setWindowVisible,
@@ -738,11 +910,18 @@ export function createDesktopShell(rootElement, profile) {
     showSettings,
     showSystem,
     showMusicPlayer,
+    showZenmap() {
+      setWindowVisible("zenmap", true);
+    },
     renderMusicTracks,
     musicStatus,
     updateMusicControls,
     onMusicActions,
     setUserTextColor,
-    onUserTextColorChange
+    onUserTextColorChange,
+    openNano,
+    closeNano,
+    isNanoOpen,
+    setTerminalTitle
   };
 }

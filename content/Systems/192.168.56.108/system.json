@@ -1,0 +1,23 @@
+{
+  "id": "192.168.56.108",
+  "ip": "192.168.56.108",
+  "hostname": "steves-testbox",
+  "os": {
+    "name": "Ubuntu",
+    "version": "24.04 LTS",
+    "kernel": "6.8.0-generic"
+  },
+  "ramMb": 8192,
+  "theme": "kali",
+  "filesystem": "filesystem.json",
+  "users": "users.json",
+  "programs": [
+    { "id": "net-probe", "name": "Network Probe", "fileName": "net-probe", "ramMb": 256 },
+    { "id": "steve-tool", "name": "Steve Automation Utility", "fileName": "steve-tool", "ramMb": 512 }
+  ],
+  "ports": [
+    { "port": 22, "protocol": "tcp", "service": "ssh", "state": "open" },
+    { "port": 5000, "protocol": "tcp", "service": "upnp / test", "state": "open" },
+    { "port": 8080, "protocol": "tcp", "service": "http-alt", "state": "open" }
+  ]
+}

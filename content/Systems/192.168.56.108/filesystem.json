@@ -1,0 +1,81 @@
+{
+  "home": {
+    "admin": {
+      "notes.txt": {
+        "type": "file",
+        "format": "text",
+        "content": "STEVE'S TESTBOX - LAB SANDBOX & SECURITY TESTBED\nHost: steves-testbox (192.168.56.108)\n\nConnected Nodes in Cluster:\n  - demicube-testbox (192.168.56.101)\n  - gateway-router   (192.168.56.1)\n  - fileserver-01    (192.168.56.20)\n  - web-gateway-01   (192.168.56.80)\n  - db-cluster-node1 (10.0.2.15)\n  - lab-workstation-03 (10.0.3.42)\n  - steves-computer  (11.6.0.7)\n  - satellite-uplink-relay (172.16.5.42)\n\nAll systems mapped in Zenmap topology engine."
+      },
+      "scan_network.py": {
+        "type": "file",
+        "format": "py",
+        "content": "import socket\nsubnets = ['192.168.56.0/24', '10.0.0.0/16', '172.16.5.0/24']\nprint('STEVE-NET PROBE: Scanning 9 mapped systems...')\nfor net in subnets:\n    print(f'[*] Active sweep on {net}: ONLINE')\nprint('Done. All hosts visible in Zenmap.')"
+      },
+      "deploy.sh": {
+        "type": "file",
+        "format": "text",
+        "content": "#!/bin/bash\necho '[+] Deploying sandbox testing services on steves-testbox...'\necho '[+] Testing link to demicube-testbox (192.168.56.101)... OK'\nexit 0"
+      },
+      "benchmark.py": {
+        "type": "file",
+        "format": "py",
+        "content": "import time, math\nprint('Calculating steves-testbox performance index...')\nprint('Benchmark completed. Score: 9840.')"
+      },
+      "TODO.md": {
+        "type": "file",
+        "format": "text",
+        "content": "# Steve's Priority Tasks\n- [x] Provision steves-testbox sandbox\n- [x] Deploy Zenmap network node topology viewer on demicube-testbox\n- [ ] Audit authentication logs\n"
+      },
+      ".bash_history": {
+        "type": "file",
+        "format": "text",
+        "content": "whoami\nls -la\ncat notes.txt\npython3 scan_network.py\nnano deploy.sh\nssh admin@demicube-testbox\n"
+      }
+    }
+  },
+  "documents": {
+    "lab-topology.txt": {
+      "type": "file",
+      "format": "text",
+      "content": "Test Lab Topology Specification\nSubnet 192.168.56.0/24:\n  192.168.56.1   - gateway-router\n  192.168.56.20  - fileserver-01\n  192.168.56.80  - web-gateway-01\n  192.168.56.101 - demicube-testbox\n  192.168.56.108 - steves-testbox\n"
+    },
+    "security-runbook.md": {
+      "type": "file",
+      "format": "text",
+      "content": "# Security Audit Runbook\n1. Inspect active SSH connections: `sessions`\n2. Check authentication logs: `cat /var/log/auth.log`\n3. Verify all subnet hosts in Zenmap\n"
+    },
+    "zenmap": {
+      "savedata.ini": {
+        "type": "file",
+        "format": "text",
+        "content": "; ============================================================\n; Zenmap 7.94 Network Topology Save Data\n; Stored Hosts & Discovered Targets Database\n; ============================================================\n\n[settings]\ntarget=192.168.56.0/24, 10.0.0.0/16, 172.16.5.0/24\nprofile=intense\nlayout=radial\nfilter=all\nselected=demicube-testbox\nlast_scan=2026-09-03 12:00:00 UTC\n\n[host.gateway-router]\nid=gateway-router\nhostname=gateway-router\nip=192.168.56.1\nsubnet=192.168.56.0/24\ntype=router\nrole=Subnet Gateway & NAT\nos=VyOS 1.4-rolling (Linux 6.1)\nstatus=online\nlatency=0.3ms\nhops=1\nmac=52:54:00:12:34:01\nports=22/tcp/open/ssh:OpenSSH 8.9p1, 53/tcp/open/domain:dnsmasq 2.86, 80/tcp/open/http:lighttpd 1.4.63\n\n[host.steves-testbox]\nid=steves-testbox\nhostname=steves-testbox\nip=192.168.56.108\nsubnet=192.168.56.0/24\ntype=workstation\nrole=Steve's Test Sandbox & Dev Box\nos=DemicubeOS 0.1.0 (Debian Bookworm base)\nstatus=online\nlatency=0.5ms\nhops=1\nmac=08:00:27:da:fe:62\nports=22/tcp/open/ssh:OpenSSH 9.2p1, 8080/tcp/open/http-proxy:Python SimpleHTTP, 5000/tcp/open/upnp:Werkzeug 3.0\n\n[host.fileserver-01]\nid=fileserver-01\nhostname=fileserver-01\nip=192.168.56.20\nsubnet=192.168.56.0/24\ntype=server\nrole=Department NFS & SMB Share\nos=Debian GNU/Linux 12 (bookworm)\nstatus=online\nlatency=0.8ms\nhops=1\nmac=08:00:27:fa:b1:20\nports=22/tcp/open/ssh:OpenSSH 9.2p1, 80/tcp/open/http:Apache 2.4.59, 445/tcp/open/microsoft-ds:Samba 4.17.12\n\n[host.web-gateway-01]\nid=web-gateway-01\nhostname=web-gateway-01\nip=192.168.56.80\nsubnet=192.168.56.0/24\ntype=server\nrole=Internal Nginx Reverse Proxy\nos=Alpine Linux 3.19 (Linux 6.6)\nstatus=online\nlatency=1.1ms\nhops=1\nmac=08:00:27:33:44:80\nports=22/tcp/open/ssh:Dropbear sshd 2022.82, 80/tcp/open/http:nginx 1.25.4, 443/tcp/open/https:nginx 1.25.4, 8080/tcp/open/http-proxy:Envoy 1.28\n\n[host.db-cluster-node1]\nid=db-cluster-node1\nhostname=db-cluster-node1\nip=10.0.2.15\nsubnet=10.0.0.0/16\ntype=server\nrole=PostgreSQL Primary Replica\nos=Ubuntu 22.04.4 LTS\nstatus=online\nlatency=2.4ms\nhops=2\nmac=52:54:00:aa:bb:15\nports=22/tcp/open/ssh:OpenSSH 8.9p1, 5432/tcp/open/postgresql:PostgreSQL 16.2\n\n[host.lab-workstation-03]\nid=lab-workstation-03\nhostname=lab-workstation-03\nip=10.0.3.42\nsubnet=10.0.0.0/16\ntype=workstation\nrole=Automated Testing Rig\nos=Arch Linux (rolling, Linux 6.8)\nstatus=online\nlatency=3.1ms\nhops=2\nmac=08:00:27:cc:dd:42\nports=22/tcp/open/ssh:OpenSSH 9.7p1, 9100/tcp/open/node-exporter:Prometheus Node Exporter 1.7.0\n\n[host.steves-computer]\nid=steves-computer\nhostname=steves-computer\nip=11.6.0.7\nsubnet=remote\ntype=workstation\nrole=Remote External Workstation\nos=Debian 12 Bookworm (Linux 6.1)\nstatus=online\nlatency=14.2ms\nhops=3\nmac=08:00:27:e1:0f:7a\nports=22/tcp/open/ssh:OpenSSH 9.2p1\n\n[host.satellite-uplink-relay]\nid=satellite-uplink-relay\nhostname=satellite-uplink-relay\nip=172.16.5.42\nsubnet=remote\ntype=relay\nrole=High-Bandwidth Ground Satellite Relay\nos=FreeBSD 14.0-RELEASE (GENERIC)\nstatus=online\nlatency=28.7ms\nhops=3\nmac=52:54:00:ee:ff:42\nports=22/tcp/open/ssh:OpenSSH 9.5p1 FreeBSD, 443/tcp/open/https:nginx 1.24.0, 8443/tcp/open/https-alt:custom telemetry\n"
+      }
+    }
+  },
+  "programs": {
+    "net-probe.bin": { "type": "file", "format": "binary", "executable": "net-probe" },
+    "steve-tool.bin": { "type": "file", "format": "binary", "executable": "steve-tool" }
+  },
+  "var": {
+    "log": {
+      "auth.log": {
+        "type": "file",
+        "format": "text",
+        "content": "Sep 03 12:00:00 steves-testbox systemd-logind[415]: New session c1 of user admin.\nSep 03 12:02:10 steves-testbox sudo: admin : TTY=pts/0 ; PWD=/home/admin ; USER=root ; COMMAND=/usr/bin/apt-get update\n"
+      },
+      "syslog": {
+        "type": "file",
+        "format": "text",
+        "content": "Sep 03 12:00:00 steves-testbox systemd[1]: Started Steve's Sandbox Testbed.\nSep 03 12:00:01 steves-testbox NetworkManager[521]: device (eth0): IPv4 address 192.168.56.108/24 set\nSep 03 12:00:02 steves-testbox systemd[1]: Started OpenSSH Daemon on port 22.\n"
+      },
+      "boot.log": {
+        "type": "file",
+        "format": "text",
+        "content": "DemicubeOS testbox boot completed.\nHost: steves-testbox (192.168.56.108)\n"
+      }
+    }
+  },
+  "dev": {
+    "null": { "type": "file", "format": "text", "content": "" }
+  }
+}

@@ -14,7 +14,8 @@
   "programs": [
     { "id": "codepad-plus", "name": "CodePad+", "fileName": "CodePad+", "ramMb": 500 },
     { "id": "clawder-python", "name": "Clawder Python", "fileName": "clawder-python", "ramMb": 3072 },
-    { "id": "music-player", "name": "Music Player", "fileName": "music-player", "ramMb": 1740 }
+    { "id": "music-player", "name": "Music Player", "fileName": "music-player", "ramMb": 1740 },
+    { "id": "zenmap", "name": "Zenmap", "fileName": "zenmap", "ramMb": 480 }
   ],
   "ports": [
     { "port": 22, "protocol": "tcp", "service": "ssh", "state": "open" },

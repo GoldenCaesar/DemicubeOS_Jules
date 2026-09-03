@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+      "id": "admin",
+      "username": "admin",
+      "password": "admin",
+      "role": "admin",
+      "permissions": ["full"],
+      "homeDir": "/home/admin",
+      "systemId": "192.168.56.108"
+    },
+    {
+      "id": "steve",
+      "username": "steve",
+      "password": "password",
+      "role": "user",
+      "permissions": ["user"],
+      "homeDir": "/home/admin",
+      "systemId": "192.168.56.108"
+    }
+  ]
+}

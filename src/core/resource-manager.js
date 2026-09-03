@@ -5,6 +5,7 @@ const DEFAULT_RAM = {
   codepad: { name: "codepad+", baseRam: 500, windowId: "codepad" },
   "clawder-python": { name: "clawder-python", baseRam: 3072, windowId: "clawder-python" },
   "music-player": { name: "music-player", baseRam: 1740, windowId: "music-player" },
+  zenmap: { name: "zenmap", baseRam: 480, windowId: "zenmap" },
   settings: { name: "settings", baseRam: 120, windowId: "settings" },
   "task-manager": { name: "task-manager", baseRam: 250, windowId: "task-manager" }
 };
@@ -28,7 +29,14 @@ export class ResourceManager {
 
   reset() {
     this.processes.clear();
-    this.processes.set(1, { pid: 1, ...DEFAULT_RAM.system });
+    const systemBase = Math.round(this.totalRam * 0.32);
+    this.processes.set(1, {
+      pid: 1,
+      ...DEFAULT_RAM.system,
+      baseRam: Math.min(DEFAULT_RAM.system.baseRam, Math.max(1600, systemBase)),
+      minRam: Math.min(DEFAULT_RAM.system.minRam, Math.max(1200, Math.round(this.totalRam * 0.22))),
+      maxRam: Math.min(DEFAULT_RAM.system.maxRam, Math.round(this.totalRam * 0.42))
+    });
     this.notify();
   }
 
@@ -48,7 +56,11 @@ export class ResourceManager {
 
   windowTextRam(process) {
     if (!process.windowId || !process.visible || typeof process.getWindowText !== "function") return 0;
-    return process.getWindowText().length;
+    const textLength = process.getWindowText().length;
+    // Scale window text content to a realistic dynamic RAM footprint (MB).
+    // Large graphical/diagnostic applications (like Zenmap with network diagrams,
+    // host matrices, and Nmap logs) must not treat 1 character = 1 megabyte of RAM.
+    return Math.min(60, Math.round(textLength / 64));
   }
 
   usageOf(process) {

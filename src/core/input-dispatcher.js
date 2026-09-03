@@ -13,6 +13,7 @@ export class InputDispatcher {
   attach() {
     window.addEventListener("keydown", (event) => {
       if (!this.sessionActive) return;
+      if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
       const normalizedKey = event.key.toLowerCase();
 
       if (event.altKey && normalizedKey === "d") {

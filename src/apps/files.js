@@ -1,13 +1,18 @@
 export class FilesApp {
-  constructor({ ui, fileSystem, codePadApp, musicPlayer, launchProgram }) {
+  constructor({ ui, fileSystem, codePadApp, musicPlayer, launchProgram, terminal = null }) {
     this.ui = ui;
     this.fileSystem = fileSystem;
     this.codePadApp = codePadApp;
     this.musicPlayer = musicPlayer;
     this.launchProgram = launchProgram;
+    this.terminal = terminal;
     this.currentPath = "/";
     this.history = [];
     this.onDirectoryChanged = null;
+  }
+
+  setTerminal(terminal) {
+    this.terminal = terminal;
   }
 
   start() {
@@ -19,7 +24,25 @@ export class FilesApp {
     if (!node) return false;
 
     if (node.type === "directory") {
+      if (this.terminal) {
+        this.terminal.submitCommand("cd " + path);
+        return true;
+      }
       return this.setPath(path, true);
+    }
+
+    if (this.terminal) {
+      if (node.executable) {
+        const progCmd = node.executable === "codepad-plus" ? "codepad" : node.executable;
+        this.terminal.submitCommand(progCmd);
+        return true;
+      }
+      if (node.format === "py") {
+        this.terminal.submitCommand("python3 " + path);
+        return true;
+      }
+      this.terminal.submitCommand("open " + path);
+      return true;
     }
 
     if (node.executable && this.launchProgram) {
@@ -33,6 +56,25 @@ export class FilesApp {
   }
 
   navigate(target) {
+    if (this.terminal) {
+      if (target === "back") {
+        const prev = this.history.pop() || "/";
+        this.terminal.submitCommand("cd " + prev);
+        return true;
+      }
+      if (target === "up") {
+        this.terminal.submitCommand("cd ..");
+        return true;
+      }
+      if (target === "refresh") {
+        this.terminal.submitCommand("ls");
+        this.start();
+        return true;
+      }
+      this.terminal.submitCommand("cd " + target);
+      return true;
+    }
+
     if (target === "back") {
       return this.setPath(this.history.pop() || this.currentPath, false);
     } else if (target === "up") {

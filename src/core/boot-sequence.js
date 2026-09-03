@@ -27,7 +27,7 @@ export class BootSequence {
     return this.osSequence.runShutdown(ui);
   }
 
-  async crash(ui) {
-    return this.osSequence.runCrash(ui);
+  async crash(ui, options = {}) {
+    return this.osSequence.runCrash(ui, options);
   }
 }

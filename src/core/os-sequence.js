@@ -109,8 +109,8 @@ async function simulateOSSequence(osName = "DemicubeOS", state = "on", print = c
     print(`${c.bgBlue}${c.white}${c.reset}`);
     print(`${c.bgBlue}${c.white}${c.bold}*** System halted for security enclave protection ***${c.reset}`);
     
-    // Wait 8 seconds before allowing reboot
-    await sleep(8000);
+    // Hold crash screen so total sequence duration is ~3x loading/dump duration (~4.5 seconds)
+    await sleep(3000);
     
     print("");
     print(`${c.green}Automatic system recovery initiated. Rebooting...${c.reset}`);
@@ -146,7 +146,9 @@ async function simulateOSSequence(osName = "DemicubeOS", state = "on", print = c
 
 export class OSSequence {
   constructor(systemDefinition) {
-    this.osName = systemDefinition.os.name || "DemicubeOS";
+    this.systemDefinition = systemDefinition;
+    this.osName = systemDefinition?.os?.name || "DemicubeOS";
+    this.totalRam = systemDefinition?.ramMb || 16384;
   }
 
   /**
@@ -166,19 +168,27 @@ export class OSSequence {
   /**
    * Run crash/panic sequence with BSOD screen
    */
-  async runCrash(ui) {
-    ui.showCrashScreen(this.osName);
+  async runCrash(ui, options = {}) {
+    const totalMem = options.totalMem || this.totalRam || 16384;
+    ui.showCrashScreen(this.osName, { ...options, totalMem });
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const totalMem = 16384;
     
     // Simulate memory dump progression
+    // 50 steps at 40ms = 2000ms (2.0 seconds) for the loading bar to complete
+    const stepInterval = 40;
+    const loadBarDuration = 50 * stepInterval; // 2000ms
     for (let p = 0; p <= 100; p += 2) {
       const dumped = Math.floor((p / 100) * totalMem);
-      ui.updateCrashDump(p, dumped);
-      await sleep(60);
+      ui.updateCrashDump(p, dumped, totalMem);
+      await sleep(stepInterval);
     }
     
-    // Hold crash screen for 8 seconds before allowing reboot
-    await sleep(8000);
+    // Hold crash screen so total BSOD screen is ~3x as long as the loading bar took to complete
+    // (1x loading bar duration + 2x hold duration = 3x total screen duration: 6.0 seconds total, max 8.0s)
+    const holdDuration = loadBarDuration * 2; // 4000ms
+    await sleep(holdDuration);
+    
+    // Automatically transition to boot screen so BSOD screen never leaks into boot time
+    ui.showBootScreen();
   }
 }

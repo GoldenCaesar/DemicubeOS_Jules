@@ -1,17 +1,40 @@
 {
   "home": {
     "admin": {
-      "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, admin. This is the DemicubeOS test computer." }
+      "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, admin. This is the DemicubeOS test computer." },
+      ".bash_history": { "type": "file", "format": "text", "content": "help\nls -la\ncat /documents/mission-brief.txt\n" }
     }
   },
   "documents": {
     "mission-brief.txt": { "type": "file", "format": "text", "content": "Test computer mission files." },
-    "example.py": { "type": "file", "format": "py", "content": "print('DemicubeOS ready')" }
+    "example.py": { "type": "file", "format": "py", "content": "print('DemicubeOS ready')" },
+    "zenmap": {
+      "savedata.ini": {
+        "type": "file",
+        "format": "text",
+        "content": "; ============================================================\n; Zenmap 7.94 Network Topology Save Data\n; Stored Hosts & Discovered Targets Database\n; ============================================================\n\n[settings]\ntarget=192.168.56.0/24, 10.0.0.0/16, 172.16.5.0/24\nprofile=intense\nlayout=radial\nfilter=all\nselected=steves-testbox\nlast_scan=2026-09-03 12:00:00 UTC\n\n[host.gateway-router]\nid=gateway-router\nhostname=gateway-router\nip=192.168.56.1\nsubnet=192.168.56.0/24\ntype=router\nrole=Subnet Gateway & NAT\nos=VyOS 1.4-rolling (Linux 6.1)\nstatus=online\nlatency=0.3ms\nhops=1\nmac=52:54:00:12:34:01\nports=22/tcp/open/ssh:OpenSSH 8.9p1, 53/tcp/open/domain:dnsmasq 2.86, 80/tcp/open/http:lighttpd 1.4.63\n\n[host.steves-testbox]\nid=steves-testbox\nhostname=steves-testbox\nip=192.168.56.108\nsubnet=192.168.56.0/24\ntype=workstation\nrole=Steve's Test Sandbox & Dev Box\nos=DemicubeOS 0.1.0 (Debian Bookworm base)\nstatus=online\nlatency=0.5ms\nhops=1\nmac=08:00:27:da:fe:62\nports=22/tcp/open/ssh:OpenSSH 9.2p1, 8080/tcp/open/http-proxy:Python SimpleHTTP, 5000/tcp/open/upnp:Werkzeug 3.0\n\n[host.fileserver-01]\nid=fileserver-01\nhostname=fileserver-01\nip=192.168.56.20\nsubnet=192.168.56.0/24\ntype=server\nrole=Department NFS & SMB Share\nos=Debian GNU/Linux 12 (bookworm)\nstatus=online\nlatency=0.8ms\nhops=1\nmac=08:00:27:fa:b1:20\nports=22/tcp/open/ssh:OpenSSH 9.2p1, 80/tcp/open/http:Apache 2.4.59, 445/tcp/open/microsoft-ds:Samba 4.17.12\n\n[host.web-gateway-01]\nid=web-gateway-01\nhostname=web-gateway-01\nip=192.168.56.80\nsubnet=192.168.56.0/24\ntype=server\nrole=Internal Nginx Reverse Proxy\nos=Alpine Linux 3.19 (Linux 6.6)\nstatus=online\nlatency=1.1ms\nhops=1\nmac=08:00:27:33:44:80\nports=22/tcp/open/ssh:Dropbear sshd 2022.82, 80/tcp/open/http:nginx 1.25.4, 443/tcp/open/https:nginx 1.25.4, 8080/tcp/open/http-proxy:Envoy 1.28\n\n[host.db-cluster-node1]\nid=db-cluster-node1\nhostname=db-cluster-node1\nip=10.0.2.15\nsubnet=10.0.0.0/16\ntype=server\nrole=PostgreSQL Primary Replica\nos=Ubuntu 22.04.4 LTS\nstatus=online\nlatency=2.4ms\nhops=2\nmac=52:54:00:aa:bb:15\nports=22/tcp/open/ssh:OpenSSH 8.9p1, 5432/tcp/open/postgresql:PostgreSQL 16.2\n\n[host.lab-workstation-03]\nid=lab-workstation-03\nhostname=lab-workstation-03\nip=10.0.3.42\nsubnet=10.0.0.0/16\ntype=workstation\nrole=Automated Testing Rig\nos=Arch Linux (rolling, Linux 6.8)\nstatus=online\nlatency=3.1ms\nhops=2\nmac=08:00:27:cc:dd:42\nports=22/tcp/open/ssh:OpenSSH 9.7p1, 9100/tcp/open/node-exporter:Prometheus Node Exporter 1.7.0\n\n[host.steves-computer]\nid=steves-computer\nhostname=steves-computer\nip=11.6.0.7\nsubnet=remote\ntype=workstation\nrole=Remote External Workstation\nos=Debian 12 Bookworm (Linux 6.1)\nstatus=online\nlatency=14.2ms\nhops=3\nmac=08:00:27:e1:0f:7a\nports=22/tcp/open/ssh:OpenSSH 9.2p1\n\n[host.satellite-uplink-relay]\nid=satellite-uplink-relay\nhostname=satellite-uplink-relay\nip=172.16.5.42\nsubnet=remote\ntype=relay\nrole=High-Bandwidth Ground Satellite Relay\nos=FreeBSD 14.0-RELEASE (GENERIC)\nstatus=online\nlatency=28.7ms\nhops=3\nmac=52:54:00:ee:ff:42\nports=22/tcp/open/ssh:OpenSSH 9.5p1 FreeBSD, 443/tcp/open/https:nginx 1.24.0, 8443/tcp/open/https-alt:custom telemetry\n"
+      }
+    }
   },
-  "programs": {},
+  "programs": {
+    "CodePad+.bin": { "type": "file", "format": "binary", "executable": "codepad-plus" },
+    "clawder-python.bin": { "type": "file", "format": "binary", "executable": "clawder-python" },
+    "music-player.bin": { "type": "file", "format": "binary", "executable": "music-player" },
+    "zenmap.bin": { "type": "file", "format": "binary", "executable": "zenmap" }
+  },
   "music": {
     "song1.mp3": { "type": "file", "format": "audio", "name": "song1.mp3", "source": "./music/song1.mp3" },
     "song2.mp3": { "type": "file", "format": "audio", "name": "song2.mp3", "source": "./music/song2.mp3" }
+  },
+  "var": {
+    "log": {
+      "auth.log": { "type": "file", "format": "text", "content": "Sep 03 12:00:00 demicube-testbox systemd-logind[412]: New session c1 of user admin.\nSep 03 12:00:01 demicube-testbox login[820]: pam_unix(login:session): session opened for user admin(uid=1000) by (uid=0)\n" },
+      "syslog": { "type": "file", "format": "text", "content": "Sep 03 12:00:00 demicube-testbox systemd[1]: Started DemicubeOS Core System Daemon.\nSep 03 12:00:01 demicube-testbox kernel: [ 0.000000] Linux version 6.6.0-demicube (root@build-server) (gcc 13.2.0)\nSep 03 12:00:01 demicube-testbox systemd[1]: Mounted Root File System.\nSep 03 12:00:02 demicube-testbox NetworkManager[524]: <info> [1756900802.12] device (eth0): state change: unmanaged -> unavailable\nSep 03 12:00:03 demicube-testbox NetworkManager[524]: <info> [1756900803.54] device (eth0): state change: unavailable -> disconnected\nSep 03 12:00:04 demicube-testbox NetworkManager[524]: <info> [1756900804.81] device (eth0): IPv4 address 10.0.0.5/24 set\nSep 03 12:00:05 demicube-testbox systemd[1]: Started OpenSSH Server Daemon.\nSep 03 12:00:06 demicube-testbox (10.0.0.5): System telemetry logger initialized.\n" },
+      "boot.log": { "type": "file", "format": "text", "content": "DemicubeOS boot completed.\nStorage mounted: root\n" }
+    }
+  },
+  "dev": {
+    "null": { "type": "file", "format": "text", "content": "" }
   },
   "log": {
     "boot.log": { "type": "file", "format": "text", "content": "DemicubeOS boot completed." }

@@ -6,8 +6,9 @@ export const GAME_PROFILE = {
   systemId: "192.168.56.101",
   downloadedPrograms: [
     { id: "codepad-plus", name: "CodePad+", fileName: "CodePad+" },
-    { id: "clawder-python", name: "Clawder Python", fileName: "clawder-python" }
-    ,{ id: "music-player", name: "Music Player", fileName: "music-player" }
+    { id: "clawder-python", name: "Clawder Python", fileName: "clawder-python" },
+    { id: "music-player", name: "Music Player", fileName: "music-player" },
+    { id: "zenmap", name: "Zenmap", fileName: "zenmap" }
   ],
   boot: {
     enableAnimation: true,
@@ -37,6 +38,12 @@ export const GAME_PROFILE = {
       title: "Clawder Python",
       subtitle: "AI assistant",
       body: "No prompts available."
+    },
+    {
+      id: "zenmap",
+      title: "Zenmap",
+      subtitle: "Network topology mapper",
+      body: "Network node map display."
     }
   ]
 };

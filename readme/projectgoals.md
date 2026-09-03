@@ -33,14 +33,16 @@ Provide tools and documentation for community developers to easily create new sy
 ### 1. CORE OS FEATURES
 - [x] Boot sequence with dynamic OS name support
 - [x] Shutdown sequence with dynamic OS name support
-- [x] Kernel panic/crash Blue Screen of Death (BSOD) with 8-second hold
+- [x] Authentic BSOD screen with inspired Windows blue (#0078d7), :( emoticon, and Oops! message
+- [x] Immediate RAM exhaustion BSOD crash and reboot when task manager calculation reaches 100%
+- [x] Kernel panic/crash sequence on critical process termination (PID 1) with tuned hold time (~3x loading bar)
 - [x] Desktop shell with window management
 - [x] Login screen with user authentication
 - [x] Taskbar and window controls
 - [ ] Proper file permissions system
 - [ ] User privilege levels (admin, user, guest)
 - [ ] Process state management improvements
-- [ ] Memory management refinements
+- [x] Memory management refinements (proactive RAM tracking and out-of-memory crash trigger)
 - [ ] Signal handling (SIGTERM, SIGKILL, SIGINT)
 
 ### 2. FILE SYSTEM
@@ -58,7 +60,7 @@ Provide tools and documentation for community developers to easily create new sy
 - [x] Process window management
 - [x] Command history
 - [x] Directory navigation (cd, pwd, ls)
-- [x] File operations (cat, cp, mv, rm, mkdir, touch)
+- [x] File operations (cat, cp, mv, rm, rm * with wildcard and animated loading simulation, mkdir, touch)
 - [x] Python command simulation (clawder-python)
 - [ ] Pipe operations (|)
 - [ ] Input/output redirection (>, <, >>)
@@ -218,7 +220,11 @@ Provide tools and documentation for community developers to easily create new sy
 ## ✨ Recent Accomplishments
 
 - ✅ Implemented dynamic OS-specific boot sequences
-- ✅ Created BSOD crash screen with 8-second hold timer
+- ✅ Redesigned BSOD crash screen with inspired Windows blue (#0078d7), large :( emoticon, Oops! message, progress bar, and QR code
+- ✅ Implemented proactive RAM exhaustion crash detection at 100% memory utilization with automatic BSOD and reboot
+- ✅ Added kernel panic / BSOD crash trigger when system daemon (PID 1) is killed
+- ✅ Created BSOD crash sequence with memory dump progression and calibrated duration (~3x loading bar time, 6.0s total)
+- ✅ Implemented `rm *` wildcard command with realistic Linux "removing .........." dot loader animation, size-dependent pacing, and non-permanent restoration on reboot
 - ✅ Added shutdown sequence support
 - ✅ Implemented window management system
 - ✅ Built modular system architecture

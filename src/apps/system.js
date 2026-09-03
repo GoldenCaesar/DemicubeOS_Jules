@@ -1,6 +1,19 @@
 export class SystemApp {
-  constructor({ ui }) {
+  constructor({ ui, loggingSystem = null }) {
     this.ui = ui;
+    this.loggingSystem = loggingSystem;
+  }
+
+  setLoggingSystem(loggingSystem) {
+    this.loggingSystem = loggingSystem;
+  }
+
+  startDaemon() {
+    this.loggingSystem?.startBackgroundDaemon();
+  }
+
+  stopDaemon() {
+    this.loggingSystem?.stopBackgroundDaemon();
   }
 
   start(processes, resources) {
