@@ -1,3 +1,5 @@
+import { playerNetworkState } from "../core/network-state.js";
+
 export class TerminalApp {
   constructor({ ui, profile, windowManager, fileSystem, filesApp, rebootSystem, fakePython, resourceManager, loggingSystem = null }) {
     this.ui = ui;
@@ -19,7 +21,8 @@ export class TerminalApp {
       [6, "settings"],
       [7, "task-manager"],
       [8, "music-player"],
-      [9, "zenmap"]
+      [9, "zenmap"],
+      [10, "vpnguard"]
     ]);
     this.processes = new Map([
       [1, "system"],
@@ -31,8 +34,8 @@ export class TerminalApp {
     this.commands = [
       "help", "clear", "echo", "date", "whoami", "hostname", "pwd", "ls", "cd", "cat", "open", "cp", "mv", "rm",
       "install", "reboot", "python3", "python", "ps", "kill", "focus", "exit", "logout",
-      "terminal", "files", "settings", "system", "task-manager", "music-player", "music", "zenmap", "codepad", "codepad+", "clawder-python", "snap",
-      "ssh", "nano", "grep", "sudo", "touch", "chmod", "mkdir", "session", "sessions"
+      "terminal", "files", "settings", "system", "task-manager", "music-player", "music", "zenmap", "vpnguard", "codepad", "codepad+", "clawder-python", "snap",
+      "ssh", "nano", "grep", "sudo", "touch", "chmod", "mkdir", "session", "sessions", "ifconfig", "curl", "ip", "route"
     ];
     this.commandDocs = {
       help: ["help - show the command index", "Usage: help", "Use '<command> help' for detailed command documentation."],
@@ -83,6 +86,27 @@ export class TerminalApp {
         "Example: zenmap tab hosts",
         "Example: zenmap add 10.0.9.1 vault-server \"Database Vault\" \"FreeBSD 14\"",
         "Data: stored modularly in /documents/zenmap/savedata.ini"
+      ],
+      vpnguard: [
+        "vpnguard - secure network tunnel manager & virtual interface controller",
+        "Usage: vpnguard [status | connect <consumer|work|p2p> | disconnect | profiles | reload | gui]",
+        "Modes: consumer (Mullvad-style privacy), work (Aegis corporate), p2p (peer direct)",
+        "Example: vpnguard connect consumer zurich",
+        "Example: vpnguard connect work aegis_work",
+        "Example: vpnguard connect p2p 10.9.0.2",
+        "Example: vpnguard status",
+        "Example: vpnguard disconnect",
+        "Config & Profiles: /documents/vpnguard/savedata.ini"
+      ],
+      ifconfig: [
+        "ifconfig - display or configure network interfaces (eth0, tun0)",
+        "Usage: ifconfig",
+        "Displays active IP, netmask, and virtual VPN interface status."
+      ],
+      curl: [
+        "curl - transfer data from or to a server",
+        "Usage: curl <url>",
+        "Example: curl ifconfig.me (returns current egress public IP)"
       ]
     };
   }
@@ -496,6 +520,12 @@ export class TerminalApp {
         (savePath, newContent) => {
           this.fileSystem.write(savePath, newContent);
           this.loggingSystem?.logFileAccess(savePath, "modified", "/bin/nano");
+          if (this.zenmapApp && (savePath.includes("zenmap") || savePath.includes("savedata.ini") || savePath.includes("hosts.ini"))) {
+            this.zenmapApp.reloadFromDisk();
+          }
+          if (this.vpnguardApp && (savePath.includes("vpnguard") || savePath.includes("savedata.ini"))) {
+            this.vpnguardApp.loadFromDisk();
+          }
         },
         () => {
           this.ui.appendTerminalLine("Exited nano (" + path + ")");
@@ -731,6 +761,9 @@ export class TerminalApp {
       if (this.zenmapApp && (destination.includes("zenmap") || source.includes("zenmap"))) {
         this.zenmapApp.reloadFromDisk();
       }
+      if (this.vpnguardApp && (destination.includes("vpnguard") || source.includes("vpnguard"))) {
+        this.vpnguardApp.loadFromDisk();
+      }
       return;
     }
 
@@ -752,6 +785,9 @@ export class TerminalApp {
       }
       if (this.zenmapApp && (destination.includes("zenmap") || source.includes("zenmap"))) {
         this.zenmapApp.reloadFromDisk();
+      }
+      if (this.vpnguardApp && (destination.includes("vpnguard") || source.includes("vpnguard"))) {
+        this.vpnguardApp.loadFromDisk();
       }
       return;
     }
@@ -871,6 +907,9 @@ export class TerminalApp {
             }
             if (this.zenmapApp && (path.includes("zenmap") || path.includes("savedata.ini") || path.includes("hosts.ini"))) {
               this.zenmapApp.reloadFromDisk();
+            }
+            if (this.vpnguardApp && (path.includes("vpnguard") || path.includes("savedata.ini"))) {
+              this.vpnguardApp.loadFromDisk();
             }
             if (this.resourceManager) {
               this.resourceManager.notify();
@@ -1036,6 +1075,79 @@ export class TerminalApp {
       return;
     }
 
+    if (primary === "vpnguard") {
+      if (this.vpnguardApp) {
+        this.vpnguardApp.executeCli(args, this);
+        return;
+      }
+      if (this.launchProgram) this.launchProgram("vpnguard");
+      this.windowManager.focus("vpnguard");
+      this.ui.appendTerminalLine("Opened VPNguard 2.4.1 (Network Tunnel Controller)");
+      return;
+    }
+
+    if (primary === "ifconfig") {
+      const state = playerNetworkState.getState();
+      const tun0 = state.activeInterfaces.tun0;
+      this.ui.appendTerminalLine(`eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500`);
+      this.ui.appendTerminalLine(`        inet ${state.activeInterfaces.eth0.ip}  netmask 255.255.255.0  broadcast ${state.activeInterfaces.eth0.broadcast}`);
+      this.ui.appendTerminalLine(`        ether ${state.activeInterfaces.eth0.mac}  txqueuelen 1000  (Ethernet)`);
+      this.ui.appendTerminalLine("");
+      if (tun0) {
+        this.ui.appendTerminalLine(`tun0: flags=4305<UP,POINTOPOINT,RUNNING,NOARP,MULTICAST>  mtu 1420`);
+        this.ui.appendTerminalLine(`        inet ${tun0.ip}  netmask 255.255.255.0  destination ${tun0.destination || tun0.gateway}`);
+        this.ui.appendTerminalLine(`        unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 500  (UNSPEC)`);
+        this.ui.appendTerminalLine(`        [VPN Mode: ${state.vpnMode} | Public Egress: ${state.publicIP}]`);
+      } else {
+        this.ui.appendTerminalLine(`tun0: [INTERFACE DOWN / UNCONFIGURED - VPNguard is OFF]`);
+      }
+      return;
+    }
+
+    if (primary === "curl") {
+      const target = (args[0] || "").toLowerCase();
+      const state = playerNetworkState.getState();
+      if (target.includes("ifconfig.me") || target.includes("ipinfo") || target.includes("icanhazip") || target.includes("myip")) {
+        this.ui.appendTerminalLine(state.publicIP);
+        return;
+      }
+      this.ui.appendTerminalLine(`curl: connecting to ${args[0] || "localhost"} via ${state.activeInterfaces.tun0 ? "tun0" : "eth0"}...`);
+      this.ui.appendTerminalLine(`HTTP/1.1 200 OK`);
+      this.ui.appendTerminalLine(`Client IP detected: ${state.publicIP}`);
+      return;
+    }
+
+    if (primary === "ip") {
+      if (args[0] === "a" || args[0] === "addr" || args[0] === "address" || !args[0]) {
+        this.submitCommand("ifconfig");
+        return;
+      }
+      if (args[0] === "route" || args[0] === "r") {
+        this.submitCommand("route");
+        return;
+      }
+    }
+
+    if (primary === "route") {
+      const state = playerNetworkState.getState();
+      const isConnected = state.vpnMode !== "OFF";
+      const tun0 = state.activeInterfaces.tun0;
+      this.ui.appendTerminalLine("Kernel IP routing table");
+      this.ui.appendTerminalLine("Destination     Gateway         Genmask         Flags Metric Ref    Use Iface");
+      this.ui.appendTerminalLine(`0.0.0.0         ${isConnected ? (tun0?.gateway || "10.8.0.1") : state.activeInterfaces.eth0.gateway}     0.0.0.0         UG    ${isConnected ? "50" : "100"}    0        0 ${isConnected ? "tun0" : "eth0"}`);
+      this.ui.appendTerminalLine(`${state.activeInterfaces.eth0.ip.replace(/\.\d+$/, ".0")}    0.0.0.0         255.255.255.0   U     100    0        0 eth0`);
+      if (isConnected && tun0) {
+        this.ui.appendTerminalLine(`${tun0.targetSubnet || "10.8.0.0/24"}     0.0.0.0         255.255.255.0   U     50     0        0 tun0`);
+      }
+      if (isConnected && state.vpnMode === "WORK") {
+        this.ui.appendTerminalLine("10.10.10.0      10.10.10.1      255.255.255.0   UG    50     0        0 tun0");
+      }
+      if (isConnected && state.vpnMode === "P2P") {
+        this.ui.appendTerminalLine("10.9.0.0        0.0.0.0         255.255.255.0   U     50     0        0 tun0");
+      }
+      return;
+    }
+
     if (primary === "task-manager") {
       if (this.launchProgram) this.launchProgram("task-manager");
       this.windowManager.focus("task-manager");
@@ -1139,7 +1251,8 @@ export class TerminalApp {
       "music-player": [8, "music-player"],
       music: [8, "music-player"],
       "task-manager": [7, "task-manager"],
-      zenmap: [9, "zenmap"]
+      zenmap: [9, "zenmap"],
+      vpnguard: [10, "vpnguard"]
     };
     const match = aliases[requested];
     if (!match) return null;

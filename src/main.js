@@ -13,6 +13,7 @@ import { SettingsApp } from "./apps/settings.js";
 import { SystemApp } from "./apps/system.js";
 import { MusicPlayerApp } from "./apps/music-player.js";
 import { ZenMapApp } from "./apps/zenmap.js";
+import { VPNGuardApp } from "./apps/vpnguard.js";
 import { ResourceManager } from "./core/resource-manager.js";
 import { loadSystemDefinition } from "./core/system-loader.js";
 import { LoginManager } from "./core/login-manager.js";
@@ -38,6 +39,7 @@ async function main() {
     const resourceId = program.id === "codepad-plus" ? "codepad" : program.id;
     resourceManager.configureProgram(resourceId, program.ramMb);
   }
+  resourceManager.configureProgram("vpnguard", 48);
   const ui = createDesktopShell(root, runtimeProfile);
   const boot = new BootSequence(runtimeProfile, systemDefinition);
   let input = null;
