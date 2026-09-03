@@ -129,12 +129,20 @@ async function main() {
     fileSystem
   });
   terminal.zenmapApp = zenmap;
+  const vpnguard = new VPNGuardApp({
+    ui,
+    terminal,
+    fileSystem,
+    loggingSystem
+  });
+  terminal.vpnguardApp = vpnguard;
   const files = new FilesApp({ ui, fileSystem, codePadApp: codePad, musicPlayer, launchProgram: (programId) => terminal.launchProgram(programId), terminal });
   terminal.filesApp = files;
   terminal.codePadApp = codePad;
   terminal.stopProgram = (pid) => {
     if (pid === 8) musicPlayer.stop();
     if (pid === 9 && zenmap.stop) zenmap.stop();
+    if (pid === 10 && vpnguard.stop) vpnguard.stop();
   };
   resourceManager.onChanged = (snapshot) => {
     ui.renderSystemResources(snapshot);
@@ -153,7 +161,8 @@ async function main() {
     { id: "settings", name: "Settings" },
     { id: "music-player", name: "Music Player" },
     { id: "zenmap", name: "Zenmap" },
-    ...runtimeProfile.downloadedPrograms.filter((program) => !["codepad-plus", "clawder-python", "music-player", "zenmap"].includes(program.id))
+    { id: "vpnguard", name: "VPNguard" },
+    ...runtimeProfile.downloadedPrograms.filter((program) => !["codepad-plus", "clawder-python", "music-player", "zenmap", "vpnguard"].includes(program.id))
   ];
   const coreCatalog = programCatalog.slice(0, 3);
   const refreshProgramCatalog = () => {
@@ -182,12 +191,14 @@ async function main() {
       ? { id: 8, name: "music-player", windowId: "music-player", start: () => musicPlayer.start() }
       : programId === "zenmap"
       ? { id: 9, name: "zenmap", windowId: "zenmap", start: () => zenmap.start() }
+      : programId === "vpnguard"
+      ? { id: 10, name: "vpnguard", windowId: "vpnguard", start: () => vpnguard.start() }
       : programId === "codepad-plus"
       ? { id: 4, name: "codepad+", windowId: "codepad", start: () => codePad.start() }
       : programId === "clawder-python"
         ? { id: 5, name: "clawder-python", windowId: "clawder-python", start: () => clawderPython.start() }
         : { id: 6, name: "settings", windowId: "settings", start: () => settings.start() };
-    const resourceProgramIds = { terminal: "terminal", files: "files", "codepad-plus": "codepad", "clawder-python": "clawder-python", "music-player": "music-player", zenmap: "zenmap", settings: "settings", "task-manager": "task-manager" };
+    const resourceProgramIds = { terminal: "terminal", files: "files", "codepad-plus": "codepad", "clawder-python": "clawder-python", "music-player": "music-player", zenmap: "zenmap", vpnguard: "vpnguard", settings: "settings", "task-manager": "task-manager" };
     const canStart = resourceManager.start(process.id, resourceProgramIds[programId], {
       visible: true,
       getWindowText: () => ui.getWindowText(process.windowId)
@@ -239,9 +250,9 @@ async function main() {
   ui.onWindowOpen((windowId) => {
     const processEntry = [...terminal.processWindows.entries()].find(([, id]) => id === windowId);
     if (processEntry && !terminal.processes.has(processEntry[0])) {
-      const processNames = { 2: "terminal", 3: "files", 4: "codepad+", 5: "clawder-python", 6: "settings", 7: "task-manager", 8: "music-player", 9: "zenmap" };
+      const processNames = { 2: "terminal", 3: "files", 4: "codepad+", 5: "clawder-python", 6: "settings", 7: "task-manager", 8: "music-player", 9: "zenmap", 10: "vpnguard" };
       terminal.processes.set(processEntry[0], processNames[processEntry[0]]);
-      const resourceProgramIds = { 2: "terminal", 3: "files", 4: "codepad", 5: "clawder-python", 6: "settings", 7: "task-manager", 8: "music-player", 9: "zenmap" };
+      const resourceProgramIds = { 2: "terminal", 3: "files", 4: "codepad", 5: "clawder-python", 6: "settings", 7: "task-manager", 8: "music-player", 9: "zenmap", 10: "vpnguard" };
       resourceManager.start(processEntry[0], resourceProgramIds[processEntry[0]], {
         visible: true,
         getWindowText: () => ui.getWindowText(windowId)
@@ -284,7 +295,8 @@ async function main() {
       "clawder-python": "clawder-python",
       "settings": "settings",
       "music-player": "music-player",
-      "zenmap": "zenmap"
+      "zenmap": "zenmap",
+      "vpnguard": "vpnguard"
     };
     const cmd = programCommands[programId] || programId;
     terminal.submitCommand(cmd);

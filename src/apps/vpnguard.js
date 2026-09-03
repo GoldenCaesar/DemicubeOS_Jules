@@ -589,6 +589,10 @@ ${
   // CLI Command Handler: Called by TerminalApp when user runs `vpnguard ...`
   // ---------------------------------------------------------------------------
   executeCli(args, terminal) {
+    if (!terminal) return;
+    if (!terminal.appendLine && terminal.ui?.appendTerminalLine) {
+      terminal.appendLine = (line) => terminal.ui.appendTerminalLine(line);
+    }
     this.ensureSaveFiles();
     this.loadFromDisk();
 

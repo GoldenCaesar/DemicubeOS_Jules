@@ -8,7 +8,8 @@ export const GAME_PROFILE = {
     { id: "codepad-plus", name: "CodePad+", fileName: "CodePad+" },
     { id: "clawder-python", name: "Clawder Python", fileName: "clawder-python" },
     { id: "music-player", name: "Music Player", fileName: "music-player" },
-    { id: "zenmap", name: "Zenmap", fileName: "zenmap" }
+    { id: "zenmap", name: "Zenmap", fileName: "zenmap" },
+    { id: "vpnguard", name: "VPNguard", fileName: "vpnguard" }
   ],
   boot: {
     enableAnimation: true,
@@ -44,6 +45,12 @@ export const GAME_PROFILE = {
       title: "Zenmap",
       subtitle: "Network topology mapper",
       body: "Network node map display."
+    },
+    {
+      id: "vpnguard",
+      title: "VPNguard",
+      subtitle: "Virtual network tunnel controller",
+      body: "Encrypted network tunnel manager."
     }
   ]
 };

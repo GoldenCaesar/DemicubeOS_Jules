@@ -1,4 +1,5 @@
 import { DEFAULT_ZENMAP_INI } from "../apps/zenmap-data.js";
+import { DEFAULT_VPNGUARD_INI, DEFAULT_OFFICE_OVPN, DEFAULT_VPNGUARD_README } from "../apps/vpnguard-data.js";
 
 export const FALLBACK_SYSTEM = {
   id: "192.168.56.101",
@@ -11,7 +12,8 @@ export const FALLBACK_SYSTEM = {
     { id: "codepad-plus", name: "CodePad+", fileName: "CodePad+", ramMb: 500 },
     { id: "clawder-python", name: "Clawder Python", fileName: "clawder-python", ramMb: 3072 },
     { id: "music-player", name: "Music Player", fileName: "music-player", ramMb: 1740 },
-    { id: "zenmap", name: "Zenmap", fileName: "zenmap", ramMb: 480 }
+    { id: "zenmap", name: "Zenmap", fileName: "zenmap", ramMb: 480 },
+    { id: "vpnguard", name: "VPNguard", fileName: "vpnguard", ramMb: 320 }
   ],
   ports: [
     { port: 22, protocol: "tcp", service: "ssh", state: "open" },
@@ -24,13 +26,25 @@ export const FALLBACK_SYSTEM = {
       "example.py": { type: "file", format: "py", content: "print('DemicubeOS ready')" },
       zenmap: {
         "savedata.ini": { type: "file", format: "text", content: DEFAULT_ZENMAP_INI }
+      },
+      vpnguard: {
+        "savedata.ini": { type: "file", format: "text", content: DEFAULT_VPNGUARD_INI },
+        "office.ovpn": { type: "file", format: "text", content: DEFAULT_OFFICE_OVPN },
+        "README.txt": { type: "file", format: "text", content: DEFAULT_VPNGUARD_README }
       }
     },
-    programs: {}, music: { "song1.mp3": { type: "file", format: "audio", name: "song1.mp3", source: "./music/song1.mp3" }, "song2.mp3": { type: "file", format: "audio", name: "song2.mp3", source: "./music/song2.mp3" } },
+    programs: {
+      "CodePad+.bin": { type: "file", format: "binary", executable: "codepad-plus" },
+      "clawder-python.bin": { type: "file", format: "binary", executable: "clawder-python" },
+      "music-player.bin": { type: "file", format: "binary", executable: "music-player" },
+      "zenmap.bin": { type: "file", format: "binary", executable: "zenmap" },
+      "vpnguard.bin": { type: "file", format: "binary", executable: "vpnguard" }
+    },
+    music: { "song1.mp3": { type: "file", format: "audio", name: "song1.mp3", source: "./music/song1.mp3" }, "song2.mp3": { type: "file", format: "audio", name: "song2.mp3", source: "./music/song2.mp3" } },
     var: {
       log: {
         "auth.log": { type: "file", format: "text", content: "Sep 03 12:00:00 demicube-testbox systemd-logind[412]: New session c1 of user admin.\nSep 03 12:00:01 demicube-testbox login[820]: pam_unix(login:session): session opened for user admin(uid=1000) by (uid=0)\n" },
-        "syslog": { type: "file", format: "text", content: "Sep 03 12:00:00 demicube-testbox systemd[1]: Started DemicubeOS Core System Daemon.\nSep 03 12:00:01 demicube-testbox kernel: [ 0.000000] Linux version 6.6.0-demicube (root@build-server) (gcc 13.2.0)\nSep 03 12:00:01 demicube-testbox systemd[1]: Mounted Root File System.\nSep 03 12:00:02 demicube-testbox NetworkManager[524]: <info> [1756900802.12] device (eth0): state change: unmanaged -> unavailable\nSep 03 12:00:03 demicube-testbox NetworkManager[524]: <info> [1756900803.54] device (eth0): state change: unavailable -> disconnected\nSep 03 12:00:04 demicube-testbox NetworkManager[524]: <info> [1756900804.81] device (eth0): IPv4 address 10.0.0.5/24 set\nSep 03 12:00:05 demicube-testbox systemd[1]: Started OpenSSH Server Daemon.\nSep 03 12:00:06 demicube-testbox (10.0.0.5): System telemetry logger initialized.\n" },
+        "syslog": { type: "file", format: "text", content: "Sep 03 12:00:00 demicube-testbox systemd[1]: Started DemicubeOS Core System Daemon.\nSep 03 12:00:01 demicube-testbox kernel: [ 0.000000] Linux version 6.6.0-demicube (root@build-server) (gcc 13.2.0)\nSep 03 12:00:01 demicube-testbox systemd[1]: Mounted Root File System.\nSep 03 12:00:02 demicube-testbox NetworkManager[524]: <info> [1756900802.12] device (eth0): state change: unmanaged -> unavailable\nSep 03 12:00:03 demicube-testbox NetworkManager[524]: <info> [1756900803.54] device (eth0): state change: unavailable -> disconnected\nSep 03 12:00:04 demicube-testbox NetworkManager[524]: <info> [1756900804.81] device (eth0): IPv4 address 10.0.0.5/24 set\nSep 03 12:00:05 demicube-testbox systemd[1]: Started OpenSSH Server Daemon.\nSep 03 12:00:06 demicube-testbox systemd[1]: Reached target Multi-User System.\n" },
         "boot.log": { type: "file", format: "text", content: "DemicubeOS boot completed.\nStorage mounted: root\n" }
       }
     },

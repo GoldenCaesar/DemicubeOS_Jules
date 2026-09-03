@@ -111,6 +111,12 @@ export class TerminalApp {
     };
   }
 
+  appendLine(line) {
+    if (this.ui?.appendTerminalLine) {
+      this.ui.appendTerminalLine(line);
+    }
+  }
+
   start() {
     this.running = true;
     this.updatePromptPrefix();
@@ -650,7 +656,7 @@ export class TerminalApp {
       this.ui.appendTerminalLine("mv <source> <destination>, rm [-r] <file> or rm *");
       this.ui.appendTerminalLine("ssh <host>, session, sudo <cmd>, exit, logout");
       this.ui.appendTerminalLine("install <program>, reboot, python3 <file.py>, ps, kill <pid>, focus <pid>");
-      this.ui.appendTerminalLine("snap [program ...], system, files, settings, task-manager, music-player, zenmap");
+      this.ui.appendTerminalLine("snap [program ...], system, files, settings, task-manager, music-player, zenmap, vpnguard");
       this.ui.appendTerminalLine("Pipes (|) and Redirections (> / >>) supported.");
       return;
     }

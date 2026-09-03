@@ -1953,6 +1953,28 @@ body {
   fill: #361726;
 }
 
+.node-corporate .node-circle {
+  stroke: #60a5fa;
+  fill: #14284d;
+}
+
+.node-corporate:hover .node-circle {
+  stroke: #93c5fd;
+  fill: #1d3b70;
+  filter: drop-shadow(0 0 8px #3b82f6);
+}
+
+.node-p2p .node-circle {
+  stroke: #ec4899;
+  fill: #3b1429;
+}
+
+.node-p2p:hover .node-circle {
+  stroke: #f472b6;
+  fill: #561d3c;
+  filter: drop-shadow(0 0 8px #ec4899);
+}
+
 .node-label-title {
   fill: #e2edf8;
   font-size: 11px;
@@ -2444,5 +2466,483 @@ body {
   color: #a5f3fc;
   white-space: pre-wrap;
 }
+
+/* =========================================================================
+   VPNguard 2.4.1 (Network Encryption & Tunnel Controller)
+   ========================================================================= */
+
+.vpnguard-window {
+  width: 780px;
+  height: 520px;
+  min-width: 620px;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background: #0c1622;
+  border: 1px solid #1e3a5f;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 240, 255, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  color: #d1e4f5;
+  font-family: "Hanken Grotesk", sans-serif;
+  user-select: none;
+}
+
+.vpnguard-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #08111c;
+  border-bottom: 1px solid #172d47;
+  flex-wrap: wrap;
+}
+
+.vpnguard-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.vpnguard-status-pill.disconnected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.vpnguard-status-pill.connected {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.vpnguard-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.vpnguard-pulse.off {
+  background: #ef4444;
+}
+
+.vpnguard-pulse.live {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: vpnPulse 1.5s infinite;
+}
+
+@keyframes vpnPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.vpnguard-nav-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.vpnguard-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8da4be;
+  padding: 5px 11px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vpnguard-tab-btn:hover {
+  color: #d1e4f5;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.vpnguard-tab-btn.active {
+  background: #193557;
+  color: #00f0ff;
+  border-color: #234e7a;
+}
+
+.vpnguard-content-area {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.vpnguard-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vpnguard-state-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.vpnguard-metric-card {
+  background: #081320;
+  border: 1px solid #162a42;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vpnguard-metric-label {
+  font-size: 0.7rem;
+  color: #728ca6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.vpnguard-metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e6f1fc;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.vpnguard-metric-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.vpnguard-metric-value.online {
+  color: #34d399;
+}
+
+.vpnguard-metric-value.anon {
+  color: #00f0ff;
+}
+
+.vpnguard-metric-value.inactive {
+  color: #94a3b8;
+}
+
+.vpnguard-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vpnguard-card-icon {
+  font-size: 1.1rem;
+}
+
+.vpnguard-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.vpnguard-modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.vpnguard-mode-card {
+  background: #0d1b2a;
+  border: 1px solid #1c324e;
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.vpnguard-mode-card:hover {
+  border-color: #2b4b72;
+}
+
+.vpnguard-mode-card.active-mode {
+  border-color: #00f0ff;
+  background: #0f253d;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+}
+
+.vpnguard-mode-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin: 0;
+  flex: 1;
+}
+
+.vpnguard-mode-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-family: "JetBrains Mono", monospace;
+  color: #cbd5e1;
+}
+
+.vpnguard-mode-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.vpnguard-select,
+.vpnguard-input {
+  background: #060e18;
+  border: 1px solid #1d3655;
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-family: "JetBrains Mono", monospace;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.vpnguard-select:focus,
+.vpnguard-input:focus {
+  outline: none;
+  border-color: #00f0ff;
+}
+
+.vpnguard-primary-btn,
+.vpnguard-secondary-btn,
+.vpnguard-danger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.vpnguard-primary-btn {
+  background: #00f0ff;
+  color: #051421;
+}
+
+.vpnguard-primary-btn:hover:not(:disabled) {
+  background: #38bdf8;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
+.vpnguard-primary-btn.corporate-btn {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.vpnguard-primary-btn.corporate-btn:hover:not(:disabled) {
+  background: #60a5fa;
+}
+
+.vpnguard-primary-btn.p2p-btn {
+  background: #ec4899;
+  color: #ffffff;
+}
+
+.vpnguard-primary-btn.p2p-btn:hover:not(:disabled) {
+  background: #f472b6;
+}
+
+.vpnguard-secondary-btn {
+  background: #162c47;
+  border-color: #244670;
+  color: #cbd5e1;
+}
+
+.vpnguard-secondary-btn:hover {
+  background: #1f3d63;
+  color: #ffffff;
+}
+
+.vpnguard-danger-btn {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.vpnguard-danger-btn:hover:not(:disabled) {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.vpnguard-primary-btn:disabled,
+.vpnguard-danger-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vpnguard-profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vpnguard-profile-card {
+  background: #091421;
+  border: 1px solid #162a42;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vpnguard-profile-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vpnguard-profile-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  background: #193557;
+  color: #38bdf8;
+}
+
+.vpnguard-profile-id {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.vpnguard-profile-status {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: #10b981;
+}
+
+.vpnguard-profile-name {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.vpnguard-profile-description {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.vpnguard-profile-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.72rem;
+  font-family: "JetBrains Mono", monospace;
+  color: #cbd5e1;
+  margin-top: 4px;
+}
+
+.vpnguard-code-block {
+  background: #060e18;
+  border: 1px solid #142840;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vpnguard-code-header {
+  padding: 6px 12px;
+  background: #0a1727;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  border-bottom: 1px solid #142840;
+}
+
+.vpnguard-code {
+  margin: 0;
+  padding: 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+}
+
+.vpnguard-cli-table-wrapper {
+  background: #081320;
+  border: 1px solid #162a42;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vpnguard-cli-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.vpnguard-cli-table th,
+.vpnguard-cli-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid #14273e;
+}
+
+.vpnguard-cli-table th {
+  background: #0b1929;
+  color: #7dd3fc;
+  font-weight: 600;
+}
+
+.vpnguard-cli-table code {
+  font-family: "JetBrains Mono", monospace;
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.08);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.vpnguard-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.vpnguard-panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.vpnguard-panel-sub {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: #728ca6;
+}
+
 
 

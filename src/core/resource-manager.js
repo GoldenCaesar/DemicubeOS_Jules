@@ -6,6 +6,7 @@ const DEFAULT_RAM = {
   "clawder-python": { name: "clawder-python", baseRam: 3072, windowId: "clawder-python" },
   "music-player": { name: "music-player", baseRam: 1740, windowId: "music-player" },
   zenmap: { name: "zenmap", baseRam: 480, windowId: "zenmap" },
+  vpnguard: { name: "vpnguard", baseRam: 320, windowId: "vpnguard" },
   settings: { name: "settings", baseRam: 120, windowId: "settings" },
   "task-manager": { name: "task-manager", baseRam: 250, windowId: "task-manager" }
 };

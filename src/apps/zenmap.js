@@ -717,6 +717,9 @@ export class ZenMapApp {
   // ---------------------------------------------------------------------------
 
   triggerScan(cliTerminal = null) {
+    if (cliTerminal && !cliTerminal.appendLine && cliTerminal.ui?.appendTerminalLine) {
+      cliTerminal.appendLine = (line) => cliTerminal.ui.appendTerminalLine(line);
+    }
     if (this.isScanning) return;
     this.isScanning = true;
 
@@ -1354,6 +1357,10 @@ export class ZenMapApp {
   // ---------------------------------------------------------------------------
 
   executeCli(args, terminal) {
+    if (!terminal) return;
+    if (!terminal.appendLine && terminal.ui?.appendTerminalLine) {
+      terminal.appendLine = (line) => terminal.ui.appendTerminalLine(line);
+    }
     if (!args || args.length === 0) {
       // Default: Launch / Focus GUI and display quick status
       if (terminal.launchProgram) terminal.launchProgram("zenmap");
