@@ -1,0 +1,88 @@
+You want to build a video game that combines the hacking gameplay of *Hacknet* with the look and feel of a Kali Linux desktop, designed as a lightweight website-style project using basic web tech (like HTTP).
+
+Your vision and requests so far include:
+
+* **Commercial & Cross-Platform Goal:** Packaging the game to sell on Steam and porting it over to the Android Google Play Store.
+* **Architecture Strategy:** Inquiring about the best way to start and write the project, including how to handle cross-platform distribution.
+* **Game Maker Concept:** Initially pitching a lightweight, web-based game maker structured like a video editor (with timelines and layers) so you could push missions and bug fixes without digging into raw code files.
+* **Ultra-Lightweight Tech Stack:** Requesting the absolute simplest, low-overhead tools and stack choices for both the game engine and a future mission creator form.
+* **Core Gameplay & Input Rules:** Specifying that the engine must be **strictly keyboard-only**, featuring:
+* Persistent terminal input always accessible on screen.
+* Window-switching shortcuts like `Alt+Tab` or `Alt+A` / `Alt+D` (inspired by *s.p.l.i.t.*).
+* The ability to control desktop apps (browser, notepad, file manager) directly via terminal commands, including unrealistic utilities like keyboard-driven zooming.
+
+
+* **Developer Hand-Off:** Requesting the exact tools and architectural choices formatted as technical directives to pass straight to your developer before circling back to build the mission creator form later.
+
+Should we now outline the specific terminal commands you want available across those desktop apps?
+
+
+A keyboard-driven desktop relies on an input router and a window management state rather than standard mouse event listeners.
+
+### Architecture Overview
+
+```
+                        [ Global Keydown Listener ]
+                                     │
+                 ┌───────────────────┴───────────────────┐
+                 ▼                                       ▼
+       [ Window Cycling Layer ]               [ Input Focus Router ]
+       (Alt+Tab / Alt+A / Alt+D)              (Active Window / Shell)
+                 │                                       │
+                 ▼                                       ▼
+       Updates z-index / CSS              Executes CLI Command or Sub-app
+     (Notepad, Browser, Terminal)         (e.g., "zoom 150%", "open log.txt")
+
+```
+
+---
+
+### Recommended Tech Stack
+
+| Layer | Tool / Library | Role |
+| --- | --- | --- |
+| **Framework** | **Svelte 5** | Handles dynamic UI and window docking with zero runtime overhead; compiles to lean vanilla JS. |
+| **Terminal Core** | **xterm.js** | Handles raw keyboard buffers, ANSI color rendering, and text selection natively. |
+| **Keybindings Engine** | **Mousetrap** (or native key listeners) | Traps OS-level shortcuts (`Alt+Tab`, `Alt+A`, `Alt+D`) and isolates application shortcuts. |
+| **Cross-Platform Wrapper** | **Tauri 2** | Compiles the web app to native binaries for Steam (Windows/Linux) and Android, using ~15MB RAM compared to Electron's 150MB+. |
+
+---
+
+### Core Technical Directives for Developer
+
+**1. Window Management & Tiling (CSS/State)**
+
+* Build a `WindowManager` store holding an array of active windows: `{ id, appType, isMaximized, zIndex, contextState }`.
+* Cycle active windows via `Alt+A` (previous) and `Alt+D` (next) by dynamically shifting `zIndex` values.
+* Split the viewport using CSS Grid with a fixed dock for the persistent CLI prompt, while letting the main workspace expand or switch views via state.
+
+**2. Persistent Terminal Input Routing**
+
+* All keyboard events default to a central `InputDispatcher`.
+* The terminal accepts system-wide shell commands (e.g., `cat`, `nmap`, `hydra`, `clear`).
+* If an interactive sub-application is focused (e.g., a simulated browser or text editor), the CLI prompt prefixes contextual sub-commands (e.g., `browser:goto 10.0.0.1`, `browser:zoom 1.5`, `edit:save`).
+
+**3. Program Registry Interface**
+
+* Implement a simple executable pattern:
+
+```typescript
+interface InGameApp {
+  id: string;
+  name: string;
+  render: () => HTMLElement;
+  handleCommand: (args: string[]) => void;
+}
+
+```
+
+* Adding a new application only requires registering a new implementation of `InGameApp` without altering the rendering loop.
+
+**4. Browser and System Interception**
+
+* Intercept `e.preventDefault()` on all target keystrokes (`Tab`, `Alt`, Arrow keys) at the document root to keep focus inside the simulated OS.
+* Simulated browser windows should run as local sandboxed HTML/CSS mockups rather than actual `iframe` tags to allow direct styling and custom keyboard zooming.
+
+---
+
+Do you want the terminal prompt anchored as a persistent command bar at the bottom, or as a floating panel that shifts focus?

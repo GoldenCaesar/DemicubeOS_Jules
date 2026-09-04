@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Demicube OS - Audio Player</title>
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#070b10',
+              panel: '#0d1520',
+              panelLight: '#142030',
+              border: '#1b3248',
+              accent: '#00f0ff',
+              accentMuted: '#00a8b3',
+              glow: 'rgba(0, 240, 255, 0.15)',
+              danger: '#ff3366',
+              success: '#00ff9d',
+              text: '#9bb2c9',
+              textBright: '#d8e9f8'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom CSS -->
+<style data-purpose="desktop-and-effects">
+    /* Custom cyber background with subtle grid overlay matching Demicube OS */
+    body {
+      background-color: #060a0f;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(13, 27, 42, 0.6) 0%, rgba(4, 7, 11, 0.95) 100%),
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+      font-family: 'JetBrains Mono', 'Segoe UI', monospace;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090e15;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1a2c3f;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00f0ff;
+    }
+
+    .glow-box-cyan {
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.12), 0 0 1px rgba(0, 240, 255, 0.4);
+    }
+    .neon-text-glow {
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    }
+  </style>
+<style data-purpose="audio-visualizer-animation">
+    /* Subtle pulsing animations for simulated audio activity */
+    @keyframes pulse-bar {
+      0%, 100% { height: 20%; }
+      50% { height: 95%; }
+    }
+    .v-bar {
+      animation: pulse-bar ease-in-out infinite alternate;
+    }
+  </style>
+<!-- END: Custom CSS -->
+</head>
+<body class="h-screen w-screen flex flex-col justify-between relative text-xs text-cyber-text select-none">
+<!-- BEGIN: Desktop Icons (Left Side) -->
+<div class="absolute top-6 left-6 flex flex-col gap-6 z-10" data-purpose="desktop-icon-dock">
+<!-- Icon 1: Documents / Files -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer w-20">
+<div class="w-12 h-12 rounded-lg bg-cyber-panel/60 border border-cyber-border/80 flex items-center justify-center text-cyber-accent group-hover:border-cyber-accent group-hover:shadow-[0_0_12px_rgba(0,240,255,0.3)] transition-all">
+<svg class="w-7 h-7 stroke-current" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24">
+<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+</svg>
+</div>
+<span class="text-[11px] tracking-wide text-cyber-textBright font-medium drop-shadow">Documents</span>
+</div>
+<!-- Icon 2: Tools -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer w-20">
+<div class="w-12 h-12 rounded-lg bg-cyber-panel/60 border border-cyber-border/80 flex items-center justify-center text-cyber-accent group-hover:border-cyber-accent group-hover:shadow-[0_0_12px_rgba(0,240,255,0.3)] transition-all">
+<svg class="w-7 h-7 stroke-current" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24">
+<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+</svg>
+</div>
+<span class="text-[11px] tracking-wide text-cyber-textBright font-medium drop-shadow">Tools</span>
+</div>
+<!-- Icon 3: Workspace -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer w-20">
+<div class="w-12 h-12 rounded-lg bg-cyber-panel/60 border border-cyber-border/80 flex items-center justify-center text-cyber-accent group-hover:border-cyber-accent group-hover:shadow-[0_0_12px_rgba(0,240,255,0.3)] transition-all">
+<svg class="w-7 h-7 stroke-current" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="3"></circle>
+<circle cx="19" cy="5" r="2"></circle>
+<circle cx="5" cy="5" r="2"></circle>
+<circle cx="12" cy="19" r="2"></circle>
+</svg>
+</div>
+<span class="text-[11px] tracking-wide text-cyber-textBright font-medium drop-shadow">Workspace</span>
+</div>
+</div>
+<!-- END: Desktop Icons -->
+<!-- BEGIN: Background Terminal Window (Partially Obscured) -->
+<div class="absolute top-10 right-12 w-[680px] h-[520px] bg-[#0a1018]/90 border border-cyber-border rounded-lg shadow-2xl overflow-hidden pointer-events-none opacity-50 z-0" data-purpose="background-terminal-window">
+<!-- Terminal Header -->
+<div class="h-8 bg-[#0d1622] border-b border-cyber-border px-3 flex items-center justify-between">
+<div class="flex items-center gap-2 text-cyber-text">
+<span>root@demicube:~</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-3 h-[2px] bg-cyber-text"></span>
+<span class="w-2.5 h-2.5 border border-cyber-text"></span>
+<span class="text-xs leading-none">✕</span>
+</div>
+</div>
+<!-- Terminal Body -->
+<div class="p-4 font-mono text-[12px] leading-relaxed text-cyber-text space-y-1">
+<p class="text-cyber-accent font-semibold">Demicube Core Precision Terminal v1.0.4</p>
+<p class="text-gray-500">Type 'help' to see available commands.</p>
+<p class="text-cyber-textBright mt-3">root@demicube:~# ls -la /home/music</p>
+<p class="text-gray-400">drwxr-xr-x 4 demicube 4096 Oct 24 22:18 .</p>
+<p class="text-gray-400">drwxr-xr-x 8 demicube 4096 Oct 23 11:20 ..</p>
+<p class="text-gray-400">-rw-r--r-- 1 demicube 42.1M Oct 24 22:15 01_overclocked_pulse.flac</p>
+<p class="text-gray-400">-rw-r--r-- 1 demicube 38.6M Oct 24 22:16 02_synaptic_cascade.flac</p>
+<p class="text-gray-400">-rw-r--r-- 1 demicube 54.2M Oct 24 22:18 03_deep_subsystem.flac</p>
+<p class="text-cyber-textBright mt-2">root@demicube:~# systemctl --user status pipewire.service</p>
+<p class="text-cyber-success font-medium">● pipewire.service - PipeWire Multimedia Service (Active / Direct 96kHz ALSA)</p>
+</div>
+</div>
+<!-- END: Background Terminal Window -->
+<!-- BEGIN: Main Foreground Floating Window - Audio Player -->
+<main class="relative z-20 mx-auto my-auto w-[980px] h-[670px] bg-cyber-panel/95 backdrop-blur-md border border-cyber-accent/40 rounded-lg flex flex-col glow-box-cyan shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden" data-purpose="audio-player-window">
+<!-- Window Title Bar -->
+<header class="h-9 bg-[#0b131d] border-b border-cyber-border px-3.5 flex items-center justify-between select-none">
+<!-- Left side: Title and tags -->
+<div class="flex items-center gap-3">
+<!-- Audio waveform icon -->
+<svg class="w-4 h-4 text-cyber-accent" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2 10v4M6 6v12M10 3v18M14 8v8M18 5v14M22 10v4"></path>
+</svg>
+<span class="font-medium text-cyber-textBright text-xs">Audio — root@demicube: ~/music</span>
+<span class="px-2 py-0.5 rounded text-[10px] tracking-wider uppercase font-semibold bg-cyber-accent/15 border border-cyber-accent/30 text-cyber-accent">
+          PipeWire Direct [24-bit/96kHz]
+        </span>
+<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/60 border border-emerald-500/30 text-cyber-success">
+          NOW PLAYING
+        </span>
+</div>
+<!-- Right side: Window controls -->
+<div class="flex items-center gap-3">
+<!-- Audio Output Selector pill -->
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyber-bg border border-cyber-border text-[11px] text-gray-400">
+<span class="w-1.5 h-1.5 rounded-full bg-cyber-success"></span>
+<span>ALSA: Direct Hardware Out</span>
+</div>
+<!-- Linux Window Buttons -->
+<button class="text-cyber-text hover:text-cyber-accent p-1 transition-colors" title="Minimize">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><line x1="5" x2="19" y1="12" y2="12"></line></svg>
+</button>
+<button class="text-cyber-text hover:text-cyber-accent p-1 transition-colors" title="Maximize">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="1" width="18" x="3" y="3"></rect></svg>
+</button>
+<button class="text-cyber-text hover:text-cyber-danger p-1 transition-colors" title="Close">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><line x1="18" x2="6" y1="6" y2="18"></line><line x1="6" x2="18" y1="6" y2="18"></line></svg>
+</button>
+</div>
+</header>
+<!-- App Sub-Toolbar / Filter & Control Strip -->
+<div class="h-10 bg-[#090f17] border-b border-cyber-border px-3.5 flex items-center justify-between text-xs">
+<div class="flex items-center gap-2">
+<div class="relative w-64">
+<span class="absolute inset-y-0 left-2.5 flex items-center text-cyber-text/60">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+</span>
+<input class="w-full bg-[#05080c] border border-cyber-border rounded pl-8 pr-3 py-1 text-xs text-cyber-textBright focus:outline-none focus:border-cyber-accent font-mono placeholder:text-gray-600" placeholder="Filter track, artist, album (Ctrl+F)..." type="text"/>
+</div>
+<button class="px-2.5 py-1 rounded bg-cyber-panel border border-cyber-border hover:border-cyber-accent text-cyber-textBright flex items-center gap-1.5 transition-colors">
+<svg class="w-3.5 h-3.5 text-cyber-accent" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<line x1="4" x2="4" y1="21" y2="14"></line><line x1="4" x2="4" y1="10" y2="3"></line>
+<line x1="12" x2="12" y1="21" y2="12"></line><line x1="12" x2="12" y1="8" y2="3"></line>
+<line x1="20" x2="20" y1="21" y2="16"></line><line x1="20" x2="20" y1="12" y2="3"></line>
+<line x1="1" x2="7" y1="14" y2="14"></line><line x1="9" x2="15" y1="8" y2="8"></line>
+<line x1="17" x2="23" y1="16" y2="16"></line>
+</svg>
+<span>Equalizer (Parametric 10-Band)</span>
+</button>
+</div>
+<div class="flex items-center gap-3 font-mono text-[11px]">
+<div class="text-cyber-text flex items-center gap-1">
+<span class="text-gray-500">Audio Core:</span>
+<span class="text-cyber-accent">ALSA v1.2.9-rt</span>
+</div>
+<div class="text-cyber-text flex items-center gap-1">
+<span class="text-gray-500">Latency:</span>
+<span class="text-cyber-success">1.33 ms</span>
+</div>
+</div>
+</div>
+<!-- Window Main Body (Sidebar + Content) -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Inner Left Sidebar -->
+<aside class="w-56 bg-[#080d14] border-r border-cyber-border flex flex-col justify-between p-3">
+<div class="space-y-4">
+<!-- Library Category -->
+<div>
+<div class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-2 mb-1.5">Library</div>
+<nav class="space-y-0.5">
+<a class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-cyber-accent bg-cyber-panel border-l-2 border-cyber-accent font-medium" href="#">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+<span>Now Playing</span>
+</a>
+<a class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors" href="#">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+<span>Tracks</span>
+<span class="ml-auto text-[10px] text-gray-500 font-mono">148</span>
+</a>
+<a class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors" href="#">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="20" rx="2" width="20" x="2" y="2"></rect><circle cx="12" cy="12" r="4"></circle></svg>
+<span>Albums</span>
+<span class="ml-auto text-[10px] text-gray-500 font-mono">14</span>
+</a>
+<a class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors" href="#">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+<span>Artists</span>
+</a>
+</nav>
+</div>
+<!-- Playlists Category -->
+<div>
+<div class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-2 mb-1.5">Curated Playlists</div>
+<nav class="space-y-0.5">
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors group" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-cyber-accent"></span>
+<span class="truncate">Cyberpunk Focus</span>
+<span class="ml-auto text-[10px] text-gray-600 font-mono">32</span>
+</a>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors group" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+<span class="truncate">Synthwave Lo-Fi</span>
+<span class="ml-auto text-[10px] text-gray-600 font-mono">24</span>
+</a>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors group" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+<span class="truncate">Late Night Coding</span>
+<span class="ml-auto text-[10px] text-gray-600 font-mono">48</span>
+</a>
+<a class="flex items-center gap-2 px-2.5 py-1.5 rounded text-cyber-text hover:text-cyber-textBright hover:bg-cyber-panel/50 transition-colors group" href="#">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span class="truncate">System Sounds &amp; FX</span>
+<span class="ml-auto text-[10px] text-gray-600 font-mono">16</span>
+</a>
+</nav>
+</div>
+<!-- Sources / Storage -->
+<div>
+<div class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-2 mb-1.5">Mounted Audio Drives</div>
+<div class="px-2.5 space-y-1.5 text-[11px] font-mono">
+<div class="flex items-center justify-between text-gray-400">
+<span class="flex items-center gap-1.5">
+<svg class="w-3 h-3 text-cyber-accent" fill="none" stroke="currentColor" viewbox="0 0 24 24"><rect height="8" rx="2" width="20" x="2" y="2"></rect><rect height="8" rx="2" width="20" x="2" y="14"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line></svg>
+<span>/mnt/nvme/audio</span>
+</span>
+<span class="text-cyber-accent">ONLINE</span>
+</div>
+<div class="flex items-center justify-between text-gray-500">
+<span class="flex items-center gap-1.5">
+<svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg>
+<span>NAS Stream Daemon</span>
+</span>
+<span>IDLE</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Hardware & Stream Stat Box -->
+<div class="bg-cyber-panel border border-cyber-border rounded p-2.5 space-y-1.5 font-mono text-[10px]">
+<div class="flex justify-between text-gray-400">
+<span>BIT DEPTH</span>
+<span class="text-cyber-accent font-semibold">24-bit PCM</span>
+</div>
+<div class="flex justify-between text-gray-400">
+<span>SAMPLE RATE</span>
+<span class="text-cyber-accent font-semibold">96.0 kHz</span>
+</div>
+<div class="flex justify-between text-gray-400">
+<span>BUFFER USAGE</span>
+<span class="text-cyber-success font-semibold">0.4% (64 frames)</span>
+</div>
+</div>
+</aside>
+<!-- Main Center Content Area -->
+<section class="flex-1 flex flex-col bg-[#070b10] overflow-y-auto">
+<!-- Now Playing Hero Visualizer Banner -->
+<div class="p-4 border-b border-cyber-border bg-gradient-to-b from-[#0e1724] to-[#070b10] flex gap-5 items-center">
+<!-- Stylized Cyber Holographic Album Art -->
+<div class="relative w-28 h-28 rounded border border-cyber-accent/50 bg-[#05080c] flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+<!-- Geometric Album Cover Graphic -->
+<svg class="w-20 h-20 text-cyber-accent opacity-90" fill="none" viewbox="0 0 100 100">
+<polygon points="50 10, 85 30, 85 70, 50 90, 15 70, 15 30" stroke="currentColor" stroke-width="2"></polygon>
+<polygon points="50 25, 72 38, 72 62, 50 75, 28 62, 28 38" stroke="currentColor" stroke-dasharray="3 2" stroke-width="1.5"></polygon>
+<circle cx="50" cy="50" r="14" stroke="#00ff9d" stroke-width="2"></circle>
+<circle cx="50" cy="50" fill="#00f0ff" r="4"></circle>
+<line opacity="0.4" stroke="currentColor" stroke-width="0.7" x1="50" x2="50" y1="10" y2="90"></line>
+<line opacity="0.4" stroke="currentColor" stroke-width="0.7" x1="15" x2="85" y1="30" y2="70"></line>
+<line opacity="0.4" stroke="currentColor" stroke-width="0.7" x1="15" x2="85" y1="70" y2="30"></line>
+</svg>
+<div class="absolute bottom-1 right-1 bg-black/80 px-1 py-0.5 rounded text-[8px] font-mono text-cyber-accent font-bold">FLAC</div>
+</div>
+<!-- Current Song Info & Real-Time FFT Spectrum Visualizer -->
+<div class="flex-1 flex flex-col justify-between h-28">
+<div class="flex justify-between items-start">
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-base font-bold text-cyber-textBright tracking-wide neon-text-glow">Overclocked Pulse</h1>
+<span class="text-[10px] px-1.5 py-0.2 rounded bg-cyber-accent/10 border border-cyber-accent/40 text-cyber-accent">MASTER</span>
+</div>
+<p class="text-xs text-cyber-accentMuted mt-0.5 font-medium">NeuroGrid • Silicon Horizons (2025)</p>
+</div>
+<!-- Extra badges -->
+<div class="text-right font-mono">
+<span class="text-xs text-cyber-textBright font-semibold">1411 kbps</span>
+<p class="text-[10px] text-gray-500">Stereo Channels L/R</p>
+</div>
+</div>
+<!-- Cyber Neon Spectrum Visualizer Container -->
+<div class="w-full h-12 bg-[#04070a] border border-cyber-border/70 rounded px-2 flex items-end justify-between gap-1 overflow-hidden relative" data-purpose="audio-spectrum-display">
+<div class="absolute top-1 left-2 text-[9px] font-mono text-gray-500 flex items-center gap-2">
+<span>FFT SPECTRUM ANALYZER [32 BANDS]</span>
+<span class="text-cyber-accent">PEAK: -1.2 dBFS</span>
+</div>
+<!-- 32 Animated Waveform Bars -->
+<div class="w-full flex items-end justify-between h-7 pb-1 gap-1">
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.65s; height: 35%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.42s; height: 60%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.78s; height: 85%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.52s; height: 45%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.89s; height: 70%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.38s; height: 95%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.61s; height: 80%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.73s; height: 50%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.47s; height: 65%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.82s; height: 90%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.55s; height: 75%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.39s; height: 40%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.91s; height: 88%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.64s; height: 62%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.45s; height: 78%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.80s; height: 95%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.51s; height: 60%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.69s; height: 82%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.36s; height: 44%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.88s; height: 71%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.59s; height: 90%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.74s; height: 53%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.43s; height: 68%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.81s; height: 86%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.63s; height: 50%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.37s; height: 72%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.95s; height: 93%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.58s; height: 64%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.72s; height: 42%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.49s; height: 58%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.84s; height: 30%;"></span>
+<span class="v-bar w-1.5 bg-cyber-accent rounded-t" style="animation-duration: 0.67s; height: 20%;"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Playlist / Track Queue Table -->
+<div class="flex-1 overflow-x-auto">
+<table class="w-full text-left font-mono text-[11px] border-collapse">
+<thead>
+<tr class="bg-[#0b131e] text-gray-400 border-b border-cyber-border select-none uppercase tracking-wider text-[10px]">
+<th class="py-2.5 px-3 w-10 text-center">#</th>
+<th class="py-2.5 px-3">Title / File</th>
+<th class="py-2.5 px-3">Artist</th>
+<th class="py-2.5 px-3">Album</th>
+<th class="py-2.5 px-3 w-28">Format</th>
+<th class="py-2.5 px-3 w-20 text-right">Time</th>
+<th class="py-2.5 px-3 w-12 text-center">Fav</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-cyber-border/40">
+<!-- Row 1: Active Playing -->
+<tr class="bg-cyber-accent/10 text-cyber-accent font-medium hover:bg-cyber-accent/15 transition-colors">
+<td class="py-2 px-3 text-center">
+<span class="inline-block text-cyber-accent animate-pulse">▶</span>
+</td>
+<td class="py-2 px-3 flex items-center gap-2">
+<svg class="w-3.5 h-3.5 text-cyber-accent shrink-0" fill="currentColor" viewbox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path></svg>
+<span class="text-cyber-textBright font-semibold">Overclocked Pulse</span>
+</td>
+<td class="py-2 px-3 text-cyber-textBright">NeuroGrid</td>
+<td class="py-2 px-3 text-cyber-text">Silicon Horizons</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-cyber-panel border border-cyber-accent/40 text-[10px]">FLAC 24b/96k</span></td>
+<td class="py-2 px-3 text-right font-bold text-cyber-accent">4:18</td>
+<td class="py-2 px-3 text-center text-cyber-danger">♥</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">02</td>
+<td class="py-2 px-3 text-cyber-textBright">Synaptic Cascade</td>
+<td class="py-2 px-3">CyberArchitect</td>
+<td class="py-2 px-3">Neural Link OST</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">FLAC 16b/44k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">5:24</td>
+<td class="py-2 px-3 text-center text-gray-600 hover:text-cyber-danger cursor-pointer">♡</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">03</td>
+<td class="py-2 px-3 text-cyber-textBright">Deep Subsystem Daemon</td>
+<td class="py-2 px-3">Void Pointer</td>
+<td class="py-2 px-3">Hexadecimal Dreams</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">FLAC 24b/48k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">3:52</td>
+<td class="py-2 px-3 text-center text-cyber-danger">♥</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">04</td>
+<td class="py-2 px-3 text-cyber-textBright">Kernel Memory Leak (Ambient Mix)</td>
+<td class="py-2 px-3">NullRouting</td>
+<td class="py-2 px-3">Stack Trace Ambient</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">FLAC 24b/96k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">7:10</td>
+<td class="py-2 px-3 text-center text-gray-600 hover:text-cyber-danger cursor-pointer">♡</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">05</td>
+<td class="py-2 px-3 text-cyber-textBright">Packet Sniffer Serenade</td>
+<td class="py-2 px-3">Wireshark Trio</td>
+<td class="py-2 px-3">Promiscuous Mode</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">OGG 320k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">4:45</td>
+<td class="py-2 px-3 text-center text-gray-600 hover:text-cyber-danger cursor-pointer">♡</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">06</td>
+<td class="py-2 px-3 text-cyber-textBright">Zero-Day Protocol</td>
+<td class="py-2 px-3">NeuroGrid</td>
+<td class="py-2 px-3">Silicon Horizons</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">FLAC 24b/96k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">6:03</td>
+<td class="py-2 px-3 text-center text-cyber-danger">♥</td>
+</tr>
+<!-- Row 7 -->
+<tr class="hover:bg-cyber-panel/50 text-cyber-text transition-colors">
+<td class="py-2 px-3 text-center text-gray-500">07</td>
+<td class="py-2 px-3 text-cyber-textBright">Dark Fiber Route 80</td>
+<td class="py-2 px-3">BGP Transmit</td>
+<td class="py-2 px-3">Backbone Echoes</td>
+<td class="py-2 px-3"><span class="px-1.5 py-0.5 rounded bg-[#0b131e] border border-cyber-border text-[10px]">FLAC 16b/44k</span></td>
+<td class="py-2 px-3 text-right text-gray-400">3:38</td>
+<td class="py-2 px-3 text-center text-gray-600 hover:text-cyber-danger cursor-pointer">♡</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- BEGIN: Bottom Playback Controls Dock -->
+<footer class="h-16 bg-[#080d14] border-t border-cyber-border px-5 flex items-center justify-between gap-6 z-30" data-purpose="audio-controls-dock">
+<!-- Mini Track Info (Left) -->
+<div class="flex items-center gap-3 w-56">
+<div class="w-10 h-10 rounded border border-cyber-border bg-cyber-panel flex items-center justify-center text-cyber-accent shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+</div>
+<div class="truncate">
+<div class="text-cyber-textBright font-semibold truncate text-[11px]">Overclocked Pulse</div>
+<div class="text-cyber-text text-[10px] truncate">NeuroGrid • Silicon Horizons</div>
+</div>
+</div>
+<!-- Center Player Controls & Progress Scrub Bar -->
+<div class="flex-1 max-w-xl flex flex-col items-center gap-1.5">
+<!-- Buttons Group -->
+<div class="flex items-center gap-4 text-cyber-text">
+<!-- Shuffle Button -->
+<button class="hover:text-cyber-accent text-cyber-accent transition-colors" title="Shuffle Enabled">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" x2="21" y1="20" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" x2="21" y1="15" y2="21"></line><line x1="4" x2="9" y1="4" y2="9"></line></svg>
+</button>
+<!-- Previous Button -->
+<button class="hover:text-cyber-accent transition-colors" title="Previous Track">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"></polygon><line stroke="currentColor" stroke-width="2" x1="5" x2="5" y1="19" y2="5"></line></svg>
+</button>
+<!-- Play / Pause Prominent Button -->
+<button class="w-8 h-8 rounded-full bg-cyber-accent text-cyber-bg flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_12px_rgba(0,240,255,0.4)]" title="Pause">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><rect height="16" width="4" x="6" y="4"></rect><rect height="16" width="4" x="14" y="4"></rect></svg>
+</button>
+<!-- Next Button -->
+<button class="hover:text-cyber-accent transition-colors" title="Next Track">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line stroke="currentColor" stroke-width="2" x1="19" x2="19" y1="5" y2="19"></line></svg>
+</button>
+<!-- Repeat Button -->
+<button class="hover:text-cyber-accent transition-colors" title="Repeat All">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+</button>
+</div>
+<!-- Scrubbing Progress Bar & Timestamps -->
+<div class="w-full flex items-center gap-2.5 font-mono text-[10px]">
+<span class="text-cyber-accent font-semibold">02:45</span>
+<div class="relative flex-1 h-1.5 bg-[#141f2d] rounded-full overflow-hidden cursor-pointer group">
+<div class="absolute left-0 top-0 bottom-0 bg-cyber-accent rounded-full w-[65%] shadow-[0_0_8px_#00f0ff]"></div>
+</div>
+<span class="text-gray-500">04:18</span>
+</div>
+</div>
+<!-- Right Side Utilities (Volume, Output, Format) -->
+<div class="flex items-center gap-3 w-56 justify-end">
+<!-- Speaker Icon -->
+<svg class="w-4 h-4 text-cyber-text" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+<!-- Volume Slider -->
+<div class="w-24 h-1.5 bg-[#141f2d] rounded-full overflow-hidden relative cursor-pointer">
+<div class="h-full bg-cyber-accent rounded-full w-[82%] shadow-[0_0_6px_#00f0ff]"></div>
+</div>
+<span class="font-mono text-[10px] text-cyber-textBright w-7 text-right">82%</span>
+<!-- Audio Jack status -->
+<span class="px-1.5 py-0.5 rounded bg-cyber-panel border border-cyber-border text-[9px] font-mono text-cyber-accent font-bold">DAC</span>
+</div>
+</footer>
+<!-- END: Bottom Playback Controls Dock -->
+</main>
+<!-- END: Main Foreground Floating Window -->
+<!-- BEGIN: Demicube OS Taskbar (Bottom) -->
+<footer class="h-11 bg-[#090f18]/95 backdrop-blur border-t border-cyber-border/80 px-3 flex items-center justify-between z-40 select-none" data-purpose="desktop-taskbar">
+<!-- Left: Application Start / Launcher Button & Active Windows -->
+<div class="flex items-center gap-2">
+<!-- Demicube Launcher Icon -->
+<button class="w-8 h-8 rounded bg-cyber-panel hover:bg-cyber-panelLight border border-cyber-border hover:border-cyber-accent flex items-center justify-center text-cyber-accent transition-all group shadow-[0_0_8px_rgba(0,240,255,0.15)]" title="Applications Menu">
+<svg class="w-5 h-5 stroke-current" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+<polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+<polyline points="2 17 12 22 22 17"></polyline>
+<polyline points="2 12 12 17 22 12"></polyline>
+</svg>
+</button>
+<!-- Taskbar Divider -->
+<div class="h-5 w-px bg-cyber-border mx-1"></div>
+<!-- Active Running Window 1: System Monitor / Stats -->
+<button class="px-3 py-1 rounded bg-cyber-panel/60 border border-cyber-border/70 hover:border-cyber-accent flex items-center gap-2 text-cyber-text hover:text-cyber-textBright transition-colors text-xs">
+<svg class="w-4 h-4 text-cyber-accentMuted" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+<span class="hidden sm:inline">System Monitor</span>
+</button>
+<!-- Active Running Window 2: Terminal -->
+<button class="px-3 py-1 rounded bg-cyber-panel/60 border border-cyber-border/70 hover:border-cyber-accent flex items-center gap-2 text-cyber-text hover:text-cyber-textBright transition-colors text-xs">
+<svg class="w-4 h-4 text-cyber-accentMuted" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" x2="20" y1="19" y2="19"></line></svg>
+<span class="hidden sm:inline">Terminal</span>
+</button>
+<!-- Active Running Window 3: Audio Player (FOCUSED & ACTIVE) -->
+<button class="px-3 py-1 rounded bg-cyber-panel border-b-2 border-cyber-accent border-t border-l border-r border-cyber-border text-cyber-accent flex items-center gap-2 text-xs font-semibold shadow-[0_0_10px_rgba(0,240,255,0.2)]">
+<svg class="w-4 h-4 text-cyber-accent animate-pulse" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2 10v4M6 6v12M10 3v18M14 8v8M18 5v14M22 10v4"></path>
+</svg>
+<span>Audio Player</span>
+</button>
+</div>
+<!-- Right: System Tray & Status Bar -->
+<div class="flex items-center gap-4 text-xs font-mono text-cyber-text">
+<!-- Network indicator -->
+<div class="flex items-center gap-1 hover:text-cyber-accent cursor-pointer" title="Network: Connected 10GbE / eth0">
+<svg class="w-3.5 h-3.5 text-cyber-accent" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" x2="12.01" y1="20" y2="20"></line></svg>
+<span class="hidden md:inline text-[11px]">eth0: 10G</span>
+</div>
+<!-- Audio Engine Master Indicator -->
+<div class="flex items-center gap-1.5 hover:text-cyber-accent cursor-pointer" title="PulseAudio/PipeWire direct stream active">
+<svg class="w-3.5 h-3.5 text-cyber-accent" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+<span class="hidden md:inline text-[11px]">96kHz</span>
+</div>
+<!-- Battery / Power -->
+<div class="flex items-center gap-1 text-cyber-success" title="Power: AC Connected">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="12" rx="2" width="18" x="1" y="6"></rect><line x1="23" x2="23" y1="11" y2="13"></line><line x1="6" x2="10" y1="12" y2="12"></line><line x1="8" x2="8" y1="10" y2="14"></line></svg>
+<span class="text-[11px]">PWR</span>
+</div>
+<!-- System Clock matching SCREEN_2 & SCREEN_3 -->
+<div class="text-cyber-textBright font-semibold pl-2 border-l border-cyber-border">
+        11:39 PM
+      </div>
+</div>
+</footer>
+<!-- END: Demicube OS Taskbar -->
+</body></html>
