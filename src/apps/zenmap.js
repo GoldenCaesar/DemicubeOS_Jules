@@ -1147,8 +1147,42 @@ export class ZenMapApp {
             ${sys.hops > 0 ? `<span class="trace-arrow">➔</span><span class="trace-node target">${sys.hostname}</span>` : ""}
           </div>
         </div>
+
+        <div class="inspector-section">
+          <h4>Host Actions</h4>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+            ${!isLocal && (sys.ports || []).some((p) => p.service === "ssh" || p.port === 22) ? `<button class="zenmap-mini-btn ssh-btn" data-action-ssh="${sys.ip}" title="SSH to ${sys.hostname}">SSH Connect</button>` : ""}
+            <button class="zenmap-mini-btn" data-action-rescan="${sys.hostname}" title="Rescan ${sys.hostname}">Rescan Host</button>
+          </div>
+        </div>
       </div>
     `;
+
+    const sshBtn = this.hostInspector.querySelector("[data-action-ssh]");
+    if (sshBtn) {
+      sshBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ip = sshBtn.dataset.actionSsh;
+        if (this.terminal) {
+          this.terminal.submitCommand("zenmap ssh " + ip);
+        } else {
+          this.connectViaSSH(ip);
+        }
+      });
+    }
+
+    const rescanBtn = this.hostInspector.querySelector("[data-action-rescan]");
+    if (rescanBtn) {
+      rescanBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const target = rescanBtn.dataset.actionRescan;
+        if (this.terminal) {
+          this.terminal.submitCommand("zenmap rescan " + target);
+        } else {
+          this.triggerScan();
+        }
+      });
+    }
   }
 
   renderHostsTable() {
@@ -1160,6 +1194,7 @@ export class ZenMapApp {
       .map((sys) => {
         const isSelected = sys.id === this.selectedHostId;
         const isLocal = sys.type === "localhost" || sys.id === "demicube-testbox";
+        const hasSsh = (sys.ports || []).some((p) => p.service === "ssh" || p.port === 22);
         const portsSummary = (sys.ports || []).map((p) => `${p.port}/${p.service}`).join(", ");
 
         return `
@@ -1173,6 +1208,7 @@ export class ZenMapApp {
           <td>${sys.role}</td>
           <td>
             <button class="zenmap-mini-btn inspect-btn" data-action-inspect="${sys.id}" title="Inspect in topology [CLI: zenmap inspect ${sys.hostname}]">Inspect</button>
+            ${hasSsh && !isLocal ? `<button class="zenmap-mini-btn ssh-btn" data-action-ssh="${sys.ip}" title="Connect via SSH [CLI: zenmap ssh ${sys.hostname}]">SSH</button>` : ""}
             ${!isLocal ? `<button class="zenmap-mini-btn remove-btn" data-action-rm="${sys.id}" title="Remove host [CLI: zenmap rm ${sys.hostname}]">Rm</button>` : ""}
           </td>
         </tr>
@@ -1189,6 +1225,18 @@ export class ZenMapApp {
         } else {
           this.selectHost(hostId);
           this.switchTab("topology");
+        }
+      });
+    });
+
+    tableBody.querySelectorAll("[data-action-ssh]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const ip = btn.dataset.actionSsh;
+        if (this.terminal) {
+          this.terminal.submitCommand("zenmap ssh " + ip);
+        } else {
+          this.connectViaSSH(ip);
         }
       });
     });
