@@ -1,4 +1,5 @@
 import { playerNetworkState } from "../core/network-state.js";
+import { modeToPermissionString } from "../core/file-system.js";
 
 export class TerminalApp {
   constructor({ ui, profile, windowManager, fileSystem, filesApp, rebootSystem, fakePython, resourceManager, loggingSystem = null }) {
@@ -12,7 +13,9 @@ export class TerminalApp {
     this.resourceManager = resourceManager;
     this.loggingSystem = loggingSystem;
     this.currentPath = "/home/admin";
+    this.waitingForPassword = null;
     this.running = true;
+    this.isElevated = false;
     this.processWindows = new Map([
       [2, "terminal-main"],
       [3, "files"],
@@ -32,10 +35,10 @@ export class TerminalApp {
     this.buffer = "";
     this.promptPrefix = profile.promptUser + "@" + profile.promptHost + ":~$ ";
     this.commands = [
-      "help", "clear", "echo", "date", "whoami", "hostname", "pwd", "ls", "cd", "cat", "open", "cp", "mv", "rm",
-      "install", "reboot", "python3", "python", "ps", "kill", "focus", "exit", "logout",
+      "help", "clear", "echo", "date", "whoami", "hostname", "pwd", "ls", "ll", "cd", "cat", "open", "cp", "mv", "rm",
+      "install", "reboot", "python3", "python", "ps", "kill", "focus", "exit", "logout", "disconnect",
       "terminal", "files", "settings", "system", "task-manager", "music-player", "music", "zenmap", "vpnguard", "codepad", "codepad+", "clawder-python", "snap",
-      "ssh", "nano", "grep", "sudo", "touch", "chmod", "mkdir", "session", "sessions", "ifconfig", "curl", "ip", "route"
+      "ssh", "nano", "grep", "sudo", "touch", "chmod", "chown", "mkdir", "session", "sessions", "ifconfig", "curl", "ip", "route"
     ];
     this.commandDocs = {
       help: ["help - show the command index", "Usage: help", "Use '<command> help' for detailed command documentation."],
@@ -74,9 +77,12 @@ export class TerminalApp {
       sudo: ["sudo - execute a command with administrative privileges", "Usage: sudo <command>", "Example: sudo chmod 600 book_draft.txt"],
       touch: ["touch - create an empty file or update timestamp", "Usage: touch <file>", "Example: touch /var/log/custom.log"],
       chmod: ["chmod - change file permissions", "Usage: chmod <mode> <file>", "Example: chmod 600 book_draft.txt"],
+      chown: ["chown - change file owner and group", "Usage: chown <owner[:group]> <path>", "Example: chown admin:admin /documents/notes.txt"],
+      ll: ["ll - alias for ls -la (long listing with permissions and ownership)", "Usage: ll [directory]"],
       mkdir: ["mkdir - create directory", "Usage: mkdir [-p] <directory>", "Example: mkdir /home/admin/notes"],
       session: ["session - display active SSH session chain and hops", "Usage: session"],
       sessions: ["sessions - alias for session", "Usage: sessions"],
+      disconnect: ["disconnect - disconnect from remote SSH session and return to local host", "Usage: disconnect"],
       zenmap: [
         "zenmap - launch Zenmap GUI or execute topology mapping commands from terminal",
         "Usage: zenmap [command] [args...]",
@@ -129,6 +135,20 @@ export class TerminalApp {
     if (this.syncProcesses) this.syncProcesses();
     this.ui.appendTerminalLine("DemicubeOS terminal online.");
     this.ui.appendTerminalLine("Type 'help' to list commands.");
+  }
+
+  getActiveUser() {
+    if (this.isElevated) return "root";
+    const currentSession = this.loggingSystem?.getCurrentSession();
+    return currentSession?.user || this.profile?.promptUser || this.loginManager?.currentUser?.username || "admin";
+  }
+
+  getActiveGroups() {
+    const user = this.getActiveUser();
+    if (user === "root" || user === "admin" || this.loginManager?.isAdmin?.()) {
+      return ["root", "admin", "wheel", "sudo"];
+    }
+    return [user, "users"];
   }
 
   setCurrentDirectory(path) {
@@ -344,11 +364,76 @@ export class TerminalApp {
     return prefix;
   }
 
+  findSavedKeyPassword(currentUser, targetUser, targetIp) {
+    const knownHostsDir = `/home/${currentUser}/.ssh/known_hosts`;
+    const entries = this.fileSystem.list(knownHostsDir) || [];
+    for (const entry of entries) {
+      if (entry.type === "file" && entry.name.endsWith(".key")) {
+        const content = this.fileSystem.read(`${knownHostsDir}/${entry.name}`);
+        if (content && content.includes(`username=${targetUser}`) && content.includes(`ip=${targetIp}`)) {
+          const match = content.match(/password=(.+)/);
+          if (match) return match[1].trim();
+        }
+      }
+    }
+    const pbkDir = `/home/${currentUser}/.ssh/pbk`;
+    const pbkEntries = this.fileSystem.list(pbkDir) || [];
+    for (const entry of pbkEntries) {
+      if (entry.type === "file" && entry.name.endsWith(".key")) {
+        const content = this.fileSystem.read(`${pbkDir}/${entry.name}`);
+        if (content && content.includes(`username=${targetUser}`) && content.includes(`ip=${targetIp}`)) {
+          const match = content.match(/password=(.+)/);
+          if (match) return match[1].trim();
+        }
+      }
+    }
+    return null;
+  }
+
   submitCommand(raw) {
     const command = raw.trim();
     this.ui.appendTerminalInput(this.promptPrefix + raw);
 
     if (!command) {
+      return;
+    }
+
+    if (this.waitingForPassword) {
+      const password = raw.trim();
+      const { targetUser, targetHost, remoteSystem, targetArg } = this.waitingForPassword;
+      this.waitingForPassword = null;
+
+      const validPasswords = remoteSystem.passwords || { admin: "3tHr90" };
+      const expectedPassword = validPasswords[targetUser] || "3tHr90";
+
+      if (password === expectedPassword) {
+        const currentSession = this.loggingSystem.getCurrentSession();
+        const currentUser = currentSession.user || "admin";
+        const knownHostsDir = `/home/${currentUser}/.ssh/known_hosts`;
+        if (!this.fileSystem.resolve(knownHostsDir)) {
+          this.fileSystem.mkdir(knownHostsDir);
+        }
+        const keyFilePath = `${knownHostsDir}/${targetUser}_${remoteSystem.ip}.key`;
+        this.fileSystem.write(keyFilePath, [
+          "[ssh_key]",
+          `username=${targetUser}`,
+          `ip=${remoteSystem.ip}`,
+          `password=${password}`
+        ].join("\n"));
+
+        const newHop = this.loggingSystem.connectSSH(targetArg, targetUser);
+        if (newHop) {
+          this.fileSystem = newHop.fileSystem;
+          this.currentPath = "/home/" + newHop.user;
+          this.updatePromptPrefix();
+          this.ui.setPrompt(this.promptPrefix, this.buffer);
+          this.ui.appendTerminalLine("Connected to " + newHop.hostname + " (" + newHop.ip + ").");
+          const prevIp = this.loggingSystem.getPreviousSession()?.ip || "10.0.0.5";
+          this.ui.appendTerminalLine("Last login: " + new Date().toUTCString().slice(0, 25) + " from " + prevIp);
+        }
+      } else {
+        this.ui.appendTerminalLine("Permission denied (publickey,password).");
+      }
       return;
     }
 
@@ -369,7 +454,22 @@ export class TerminalApp {
         return;
       }
       const resolved = this.resolvePath(target);
-      this.fileSystem.write(resolved, "");
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      const existing = this.fileSystem.resolve(resolved);
+      if (existing) {
+        if (!this.fileSystem.hasPermission(user, groups, resolved, "write")) {
+          this.ui.appendTerminalLine(`sh: ${target}: Permission denied`);
+          return;
+        }
+      } else {
+        const parentDir = resolved.slice(0, resolved.lastIndexOf("/")) || "/";
+        if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+          this.ui.appendTerminalLine(`sh: ${target}: Permission denied`);
+          return;
+        }
+      }
+      this.fileSystem.write(resolved, "", user, groups[0] || "users");
       this.loggingSystem?.logFileAccess(resolved, "modified", "/bin/sh");
       return;
     }
@@ -394,9 +494,24 @@ export class TerminalApp {
       return;
     }
     const resolved = this.resolvePath(targetFile);
+    const user = this.getActiveUser();
+    const groups = this.getActiveGroups();
+    const existing = this.fileSystem.resolve(resolved);
+    if (existing) {
+      if (!this.fileSystem.hasPermission(user, groups, resolved, "write")) {
+        this.ui.appendTerminalLine(`sh: ${targetFile}: Permission denied`);
+        return;
+      }
+    } else {
+      const parentDir = resolved.slice(0, resolved.lastIndexOf("/")) || "/";
+      if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+        this.ui.appendTerminalLine(`sh: ${targetFile}: Permission denied`);
+        return;
+      }
+    }
 
     if (leftCmd === "cat /dev/null" || leftCmd === ":") {
-      this.fileSystem.write(resolved, "");
+      this.fileSystem.write(resolved, "", user, groups[0] || "users");
       this.loggingSystem?.logFileAccess(resolved, "modified", "/bin/cat");
       return;
     }
@@ -406,7 +521,7 @@ export class TerminalApp {
     if (isAppend) {
       this.fileSystem.append(resolved, content);
     } else {
-      this.fileSystem.write(resolved, content);
+      this.fileSystem.write(resolved, content, user, groups[0] || "users");
     }
     this.loggingSystem?.logFileAccess(resolved, "modified", "/bin/sh");
   }
@@ -460,22 +575,77 @@ export class TerminalApp {
     }
 
     if (primary === "ssh") {
-      const target = args[0];
-      if (!target) {
-        this.ui.appendTerminalLine("Usage: ssh <user>@<host> or ssh <host>");
+      const targetArg = args[0];
+      const providedPassword = args[1];
+
+      if (!targetArg) {
+        this.ui.appendTerminalLine("Usage: ssh <user>@<host> [password] or ssh <host>");
         return;
       }
-      const newHop = this.loggingSystem?.connectSSH(target);
-      if (newHop) {
-        this.fileSystem = newHop.fileSystem;
-        this.currentPath = "/home/" + newHop.user;
-        this.updatePromptPrefix();
-        this.ui.setPrompt(this.promptPrefix, this.buffer);
-        this.ui.appendTerminalLine("The authenticity of host '" + newHop.hostname + " (" + newHop.ip + ")' can't be established.");
-        this.ui.appendTerminalLine("ECDSA key fingerprint is SHA256:7mKp90qXv5hY3bZ1+L8n4wE6uQ2rT1sO.");
-        this.ui.appendTerminalLine("Connected to " + newHop.hostname + " (" + newHop.ip + ").");
-        const prevIp = this.loggingSystem.getPreviousSession()?.ip || "10.0.0.5";
-        this.ui.appendTerminalLine("Last login: " + new Date().toUTCString().slice(0, 25) + " from " + prevIp);
+
+      let targetUser = "admin";
+      let targetHost = targetArg;
+      if (targetArg.includes("@")) {
+        const parts = targetArg.split("@");
+        targetUser = parts[0] || "admin";
+        targetHost = parts[1];
+      }
+
+      let remoteSystem = this.loggingSystem?.remoteSystems.get(targetHost) || this.loggingSystem?.networkRegistry?.getSystem(targetHost);
+      if (!remoteSystem) {
+        remoteSystem = {
+          hostname: targetHost.match(/^\d+\.\d+\.\d+\.\d+$/) ? "host-" + targetHost.replace(/\./g, "-") : targetHost,
+          ip: targetHost.match(/^\d+\.\d+\.\d+\.\d+$/) ? targetHost : "172.16.20.10",
+          user: targetUser,
+          passwords: { admin: "3tHr90" },
+          fileSystem: this.fileSystem?.clone ? this.fileSystem.clone() : new FileSystem()
+        };
+      }
+
+      const validPasswords = remoteSystem.passwords || { admin: "3tHr90" };
+      const expectedPassword = validPasswords[targetUser] || "3tHr90";
+
+      const currentSession = this.loggingSystem.getCurrentSession();
+      const currentUser = currentSession.user || "admin";
+
+      let passwordToUse = providedPassword;
+      if (!passwordToUse) {
+        const savedPw = this.findSavedKeyPassword(currentUser, targetUser, remoteSystem.ip);
+        if (savedPw) {
+          passwordToUse = savedPw;
+        }
+      }
+
+      if (passwordToUse) {
+        if (passwordToUse === expectedPassword) {
+          const knownHostsDir = `/home/${currentUser}/.ssh/known_hosts`;
+          if (!this.fileSystem.resolve(knownHostsDir)) {
+            this.fileSystem.mkdir(knownHostsDir);
+          }
+          const keyFilePath = `${knownHostsDir}/${targetUser}_${remoteSystem.ip}.key`;
+          this.fileSystem.write(keyFilePath, [
+            "[ssh_key]",
+            `username=${targetUser}`,
+            `ip=${remoteSystem.ip}`,
+            `password=${passwordToUse}`
+          ].join("\n"));
+
+          const newHop = this.loggingSystem.connectSSH(targetArg, targetUser);
+          if (newHop) {
+            this.fileSystem = newHop.fileSystem;
+            this.currentPath = "/home/" + newHop.user;
+            this.updatePromptPrefix();
+            this.ui.setPrompt(this.promptPrefix, this.buffer);
+            this.ui.appendTerminalLine("Connected to " + newHop.hostname + " (" + newHop.ip + ").");
+            const prevIp = this.loggingSystem.getPreviousSession()?.ip || "10.0.0.5";
+            this.ui.appendTerminalLine("Last login: " + new Date().toUTCString().slice(0, 25) + " from " + prevIp);
+          }
+        } else {
+          this.ui.appendTerminalLine("Permission denied (publickey,password).");
+        }
+      } else {
+        this.ui.appendTerminalLine(`${targetUser}@${targetHost}'s password: `);
+        this.waitingForPassword = { targetUser, targetHost, remoteSystem, targetArg };
       }
       return;
     }
@@ -506,6 +676,21 @@ export class TerminalApp {
         const tag = isCurrent ? "[CURRENT]" : isLocal ? "[LOCAL]" : "[HOP]";
         this.ui.appendTerminalLine(`  [${idx}] ${hop.user}@${hop.hostname} (${hop.ip}) ${tag}`);
       });
+      return;
+    }
+
+    if (primary === "disconnect") {
+      if (this.loggingSystem?.isInSSHSession()) {
+        this.loggingSystem.resetSessionChain();
+        const current = this.loggingSystem.getCurrentSession();
+        this.fileSystem = current.fileSystem;
+        this.currentPath = "/home/" + current.user;
+        this.updatePromptPrefix();
+        this.ui.setPrompt(this.promptPrefix, this.buffer);
+        this.ui.appendTerminalLine("Connection closed. Returned to local host (" + current.hostname + ").");
+      } else {
+        this.ui.appendTerminalLine("Not in an active SSH session.");
+      }
       return;
     }
 
@@ -950,7 +1135,33 @@ export class TerminalApp {
     }
 
     if (primary === "reboot") {
-      this.rebootSystem?.();
+      this.ui.appendTerminalLine("Broadcast message from root@demicube-testbox (pts/0):");
+      this.ui.appendTerminalLine("The system is going down for reboot NOW!");
+      this.ui.appendTerminalLine("[  OK  ] Stopping systemd-logind service...");
+      this.ui.appendTerminalLine("[  OK  ] Unmounting remote sessions and virtual filesystems...");
+
+      const procs = [...this.processes.entries()];
+      (async () => {
+        for (const [pid, name] of procs) {
+          if (pid === 1) continue;
+          this.ui.appendTerminalLine(`[  OK  ] Stopping process [PID ${pid}] ${name}...`);
+          await new Promise((r) => setTimeout(r, 350));
+          this.processes.delete(pid);
+          this.resourceManager?.stop(pid);
+          if (this.syncProcesses) this.syncProcesses();
+          const windowId = this.processWindows.get(pid);
+          if (this.stopProgram) {
+            this.stopProgram(pid, windowId);
+          } else if (windowId) {
+            this.windowManager.remove(windowId);
+            this.ui.setWindowVisible(windowId, false);
+          }
+        }
+        this.ui.appendTerminalLine("[  OK  ] Reached target Reboot.");
+        this.ui.appendTerminalLine("[  OK  ] Restarting system kernel...");
+        await new Promise((r) => setTimeout(r, 500));
+        this.rebootSystem?.();
+      })();
       return;
     }
 
@@ -1015,7 +1226,10 @@ export class TerminalApp {
           this.launchProgram("music-player");
           this.filesApp.open(path);
           this.windowManager.focus("music-player");
-        } else if (this.codePadApp && this.codePadApp.open(path)) this.windowManager.focus("codepad");
+        } else if (this.codePadApp && this.codePadApp.open(path)) {
+          if (this.launchProgram) this.launchProgram("codepad-plus");
+          this.windowManager.focus("codepad");
+        }
         else this.filesApp.open(path);
       }
       return;

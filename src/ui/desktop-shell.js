@@ -67,7 +67,7 @@ export function createDesktopShell(rootElement, profile) {
     "    <div class=\"desktop-bg\">",
     "      <div class=\"desktop-logo\">DEMICUBE</div>",
     "    </div>",
-    "    <section id=\"login-screen\" class=\"login-screen hidden\" aria-label=\"User login\"><div class=\"login-panel\"><div class=\"login-kicker\">DEMICUBEOS SESSION</div><h1>Sign in</h1><p id=\"login-system\">Local test computer</p><div class=\"known-logins\"><button type=\"button\" data-known-login=\"admin\" data-known-password=\"admin\">admin</button></div><form id=\"login-form\"><label for=\"login-user\">User</label><input id=\"login-user\" autocomplete=\"username\" value=\"admin\" /><label for=\"login-password\">Password</label><input id=\"login-password\" type=\"password\" autocomplete=\"current-password\" /><button type=\"submit\">Log in</button></form><div id=\"login-error\" class=\"login-error\" role=\"alert\"></div></div></section>",
+    "    <section id=\"login-screen\" class=\"login-screen hidden\" aria-label=\"User login\"><div class=\"login-panel\"><div class=\"login-kicker\">DEMICUBEOS SESSION</div><h1>Sign in</h1><p id=\"login-system\">Local test computer</p><div class=\"known-logins\"><button type=\"button\" data-known-login=\"admin\" data-known-password=\"3tHr90\">admin</button><button type=\"button\" data-known-login=\"test_user\" data-known-password=\"password123\">test_user</button></div><form id=\"login-form\"><label for=\"login-user\">User</label><input id=\"login-user\" autocomplete=\"username\" value=\"admin\" /><label for=\"login-password\">Password</label><input id=\"login-password\" type=\"password\" autocomplete=\"current-password\" /><button type=\"submit\">Log in</button></form><div id=\"login-error\" class=\"login-error\" role=\"alert\"></div></div></section>",
     "    <section id=\"files-window\" class=\"files-window window-surface\" data-window-id=\"files\">",
     "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Files</div><div id=\"files-path\" class=\"focus-label\">/</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
     "      <div class=\"files-toolbar\"><button data-files-action=\"back\">&lt;</button><button data-files-action=\"up\">^</button><button data-files-action=\"refresh\">R</button><input id=\"files-url\" aria-label=\"File path\" value=\"/\" /></div>",
@@ -383,6 +383,25 @@ export function createDesktopShell(rootElement, profile) {
     loginError.textContent = "";
     loginSystem.textContent = profile.distroName + " · " + profile.systemId;
     loginUser.focus();
+  }
+
+  function setKnownLogins(logins) {
+    const container = document.querySelector(".known-logins");
+    if (!container || !Array.isArray(logins) || logins.length === 0) return;
+    container.innerHTML = "";
+    logins.forEach(({ username, password }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.knownLogin = username;
+      btn.dataset.knownPassword = password;
+      btn.textContent = username;
+      btn.addEventListener("click", () => {
+        loginUser.value = username;
+        loginPassword.value = password || "";
+        loginPassword.focus();
+      });
+      container.appendChild(btn);
+    });
   }
 
   knownLoginButtons.forEach((button) => button.addEventListener("click", () => {
@@ -925,6 +944,7 @@ export function createDesktopShell(rootElement, profile) {
     openNano,
     closeNano,
     isNanoOpen,
-    setTerminalTitle
+    setTerminalTitle,
+    setKnownLogins
   };
 }

@@ -14,38 +14,76 @@ Sep 03 12:00:05 demicube-testbox systemd[1]: Started OpenSSH Server Daemon.
 Sep 03 12:00:06 demicube-testbox (10.0.0.5): System telemetry logger initialized.
 `;
 
+export function modeToPermissionString(permissions = "644", isDirectory = false) {
+  const perms = String(permissions).padStart(3, "0").slice(-3);
+  const u = parseInt(perms[0], 10) || 0;
+  const g = parseInt(perms[1], 10) || 0;
+  const o = parseInt(perms[2], 10) || 0;
+
+  const pStr = (val) => (val & 4 ? "r" : "-") + (val & 2 ? "w" : "-") + (val & 1 ? "x" : "-");
+  return (isDirectory ? "d" : "-") + pStr(u) + pStr(g) + pStr(o);
+}
+
 export class FileSystem {
   constructor(programs = [], systemDefinition = null) {
     this.root = systemDefinition?.filesystem ? this.fromDefinition(systemDefinition.filesystem) : {
       type: "directory",
+      permissions: "755",
+      owner: "admin",
+      group: "admin",
       children: {
         home: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
             admin: {
               type: "directory",
+              permissions: "755",
+              owner: "admin",
+              group: "admin",
               children: {
-                "welcome.txt": this.textFile("Welcome to DemicubeOS.\nYour home directory is ready."),
-                ".bash_history": this.textFile("help\nls -la\ncat /documents/mission-brief.txt\n"),
-                "session.bin": this.binaryFile()
+                "welcome.txt": this.textFile("Welcome to DemicubeOS.\nYour home directory is ready.", "admin", "admin", "644"),
+                ".bash_history": this.textFile("help\nls -la\ncat /documents/mission-brief.txt\n", "admin", "admin", "644"),
+                "session.bin": this.binaryFile("admin", "admin", "755")
+              }
+            },
+            test_user: {
+              type: "directory",
+              permissions: "755",
+              owner: "test_user",
+              group: "users",
+              children: {
+                "welcome.txt": this.textFile("Welcome, test_user. Standard user.", "test_user", "users", "644"),
+                ".bash_history": this.textFile("whoami\nls -la\n", "test_user", "users", "644")
               }
             }
           }
         },
         documents: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
-            "mission-brief.txt": this.textFile("Mission files will appear here.\nKeep your notes close."),
-            "example.py": { type: "file", format: "py", content: "print('DemicubeOS ready')" },
-            "evidence.bin": this.binaryFile()
+            "mission-brief.txt": this.textFile("Mission files will appear here.\nKeep your notes close.", "admin", "admin", "644"),
+            "example.py": { type: "file", format: "py", content: "print('DemicubeOS ready')", permissions: "755", owner: "admin", group: "admin" },
+            "evidence.bin": this.binaryFile("admin", "admin", "755")
           }
         },
         programs: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {}
         },
         music: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
             "song1.mp3": this.audioFile("song1.mp3"),
             "song2.mp3": this.audioFile("song2.mp3")
@@ -53,36 +91,51 @@ export class FileSystem {
         },
         var: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
             log: {
               type: "directory",
+              permissions: "755",
+              owner: "admin",
+              group: "admin",
               children: {
-                "auth.log": this.textFile(defaultAuthLog),
-                "syslog": this.textFile(defaultSyslog),
-                "boot.log": this.textFile("DemicubeOS boot completed.\nStorage mounted: root\n")
+                "auth.log": this.textFile(defaultAuthLog, "admin", "admin", "644"),
+                "syslog": this.textFile(defaultSyslog, "admin", "admin", "644"),
+                "boot.log": this.textFile("DemicubeOS boot completed.\nStorage mounted: root\n", "admin", "admin", "644")
               }
             }
           }
         },
         dev: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
-            null: this.textFile("")
+            null: this.textFile("", "admin", "admin", "666")
           }
         },
         log: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
-            "boot.log": this.textFile("DemicubeOS boot completed.\nStorage mounted: root\n"),
-            "kernel.log": this.binaryFile()
+            "boot.log": this.textFile("DemicubeOS boot completed.\nStorage mounted: root\n", "admin", "admin", "644"),
+            "kernel.log": this.binaryFile("admin", "admin", "755")
           }
         },
         sys: {
           type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
           children: {
-            "wallpaper.bin": this.binaryFile(),
-            "theme.bin": this.binaryFile(),
-            "kernel.sys": this.binaryFile()
+            "wallpaper.bin": this.binaryFile("admin", "admin", "755"),
+            "theme.bin": this.binaryFile("admin", "admin", "755"),
+            "kernel.sys": this.binaryFile("admin", "admin", "755")
           }
         }
       }
@@ -98,24 +151,55 @@ export class FileSystem {
   }
 
   ensureDefaultPaths() {
+    // If vpnguard exists inside zenmap, separate them immediately
+    if (this.resolve("/documents/zenmap/vpnguard")) {
+      this.remove("/documents/zenmap/vpnguard");
+    }
+
     this.mkdir("/var/log");
+    this.mkdir("/documents");
+    this.mkdir("/documents/zenmap");
+    this.mkdir("/documents/vpnguard");
     this.mkdir("/home/admin");
+    this.mkdir("/home/admin/.ssh", "admin", "admin", "700");
+    this.mkdir("/home/admin/.ssh/pbk", "admin", "admin", "700");
+    this.mkdir("/home/admin/.ssh/pkb", "admin", "admin", "700");
+    this.mkdir("/home/admin/.ssh/known_hosts", "admin", "admin", "700");
+
+    this.mkdir("/home/test_user", "test_user", "users", "755");
+    this.mkdir("/home/test_user/.ssh", "test_user", "users", "700");
+    this.mkdir("/home/test_user/.ssh/pbk", "test_user", "users", "700");
+    this.mkdir("/home/test_user/.ssh/pkb", "test_user", "users", "700");
+    this.mkdir("/home/test_user/.ssh/known_hosts", "test_user", "users", "700");
+
     this.mkdir("/dev");
 
     if (!this.resolve("/var/log/auth.log")) {
-      this.write("/var/log/auth.log", defaultAuthLog);
+      this.write("/var/log/auth.log", defaultAuthLog, "admin", "admin", "644");
     }
     if (!this.resolve("/var/log/syslog")) {
-      this.write("/var/log/syslog", defaultSyslog);
+      this.write("/var/log/syslog", defaultSyslog, "admin", "admin", "644");
     }
     if (!this.resolve("/var/log/boot.log")) {
-      this.write("/var/log/boot.log", "DemicubeOS boot completed.\nStorage mounted: root\n");
+      this.write("/var/log/boot.log", "DemicubeOS boot completed.\nStorage mounted: root\n", "admin", "admin", "644");
     }
     if (!this.resolve("/dev/null")) {
-      this.write("/dev/null", "");
+      this.write("/dev/null", "", "admin", "admin", "666");
     }
     if (!this.resolve("/home/admin/.bash_history")) {
-      this.write("/home/admin/.bash_history", "help\nls -la\ncat /documents/mission-brief.txt\n");
+      this.write("/home/admin/.bash_history", "help\nls -la\ncat /documents/mission-brief.txt\n", "admin", "admin", "600");
+    }
+    if (!this.resolve("/home/admin/.ssh/pbk/admin.key")) {
+      this.write("/home/admin/.ssh/pbk/admin.key", "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n", "admin", "admin", "600");
+    }
+    if (!this.resolve("/home/admin/.ssh/pkb/admin.key")) {
+      this.write("/home/admin/.ssh/pkb/admin.key", "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n", "admin", "admin", "600");
+    }
+    if (!this.resolve("/home/test_user/.ssh/pbk/test_user.key")) {
+      this.write("/home/test_user/.ssh/pbk/test_user.key", "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n", "test_user", "users", "600");
+    }
+    if (!this.resolve("/home/test_user/.ssh/pkb/test_user.key")) {
+      this.write("/home/test_user/.ssh/pkb/test_user.key", "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n", "test_user", "users", "600");
     }
   }
 
@@ -131,11 +215,54 @@ export class FileSystem {
   }
 
   fromDefinition(filesystem) {
-    const convert = (value) => {
-      if (value.type === "file") return value.format === "audio" ? this.audioFile(value.name, null) : { ...value, content: value.content ?? (value.format === "binary" ? binaryPreview : "") };
-      return { type: "directory", children: Object.fromEntries(Object.entries(value).map(([name, child]) => [name, convert(child)])) };
+    const convert = (value, name = "", currentPath = "") => {
+      const fullPath = currentPath ? (currentPath === "/" ? `/${name}` : `${currentPath}/${name}`) : `/${name}`;
+      const isTestUser = fullPath.startsWith("/home/test_user");
+      const defaultOwner = isTestUser ? "test_user" : "admin";
+      const defaultGroup = isTestUser ? "users" : "admin";
+
+      if (value.type === "file") {
+        const isExe = value.executable || (value.format === "binary" && fullPath.startsWith("/programs")) || fullPath.endsWith(".py") || fullPath.endsWith(".sh");
+        const defaultPerm = isExe ? "755" : (fullPath.includes(".ssh") ? "600" : "644");
+        const base = value.format === "audio"
+          ? this.audioFile(value.name || name, null, value.owner || defaultOwner, value.group || defaultGroup, value.permissions || defaultPerm)
+          : {
+              ...value,
+              content: value.content ?? (value.format === "binary" ? binaryPreview : ""),
+              permissions: value.permissions || defaultPerm,
+              owner: value.owner || defaultOwner,
+              group: value.group || defaultGroup
+            };
+        return base;
+      }
+
+      const defaultDirPerm = fullPath.includes(".ssh") ? "700" : "755";
+      const children = {};
+      const srcChildren = value.children || value;
+      for (const [childName, childValue] of Object.entries(srcChildren)) {
+        if (childName === "type" || childName === "permissions" || childName === "owner" || childName === "group") continue;
+        children[childName] = convert(childValue, childName, fullPath);
+      }
+      return {
+        type: "directory",
+        children,
+        permissions: value.permissions || defaultDirPerm,
+        owner: value.owner || defaultOwner,
+        group: value.group || defaultGroup
+      };
     };
-    return { type: "directory", children: Object.fromEntries(Object.entries(filesystem).map(([name, child]) => [name, convert(child)])) };
+
+    const rootChildren = {};
+    for (const [name, child] of Object.entries(filesystem)) {
+      rootChildren[name] = convert(child, name, "/");
+    }
+    return {
+      type: "directory",
+      children: rootChildren,
+      permissions: "755",
+      owner: "admin",
+      group: "admin"
+    };
   }
 
   determineFormat(name) {
@@ -146,16 +273,16 @@ export class FileSystem {
     return "text";
   }
 
-  textFile(content) {
-    return { type: "file", format: "text", content: String(content) };
+  textFile(content, owner = "admin", group = "admin", permissions = "644") {
+    return { type: "file", format: "text", content: String(content), owner, group, permissions };
   }
 
-  binaryFile() {
-    return { type: "file", format: "binary", content: binaryPreview };
+  binaryFile(owner = "admin", group = "admin", permissions = "755") {
+    return { type: "file", format: "binary", content: binaryPreview, owner, group, permissions };
   }
 
-  audioFile(name, blob = null) {
-    return { type: "file", format: "audio", mime: "audio/mpeg", content: binaryPreview, name, blob, source: "./music/" + name };
+  audioFile(name, blob = null, owner = "admin", group = "admin", permissions = "644") {
+    return { type: "file", format: "audio", mime: "audio/mpeg", content: binaryPreview, name, blob, source: "./music/" + name, owner, group, permissions };
   }
 
   normalize(path = "/") {
@@ -169,6 +296,13 @@ export class FileSystem {
     return "/" + normalized.join("/");
   }
 
+  getParentPath(path) {
+    const normalized = this.normalize(path);
+    if (normalized === "/") return "/";
+    const lastSlash = normalized.lastIndexOf("/");
+    return lastSlash === 0 ? "/" : normalized.slice(0, lastSlash);
+  }
+
   resolve(path) {
     const normalized = this.normalize(path);
     if (normalized === "/") return this.root;
@@ -180,13 +314,52 @@ export class FileSystem {
     return node;
   }
 
-  mkdir(path) {
+  hasPermission(activeUser, activeGroups = [], filePath, requiredAccess) {
+    const node = this.resolve(filePath);
+    if (!node) return false;
+
+    // Admins and root always bypass DAC checks with full access
+    const isAdmin = activeUser === "root" ||
+                    activeUser === "admin" ||
+                    (Array.isArray(activeGroups) && (activeGroups.includes("admin") || activeGroups.includes("root") || activeGroups.includes("wheel") || activeGroups.includes("sudo")));
+    if (isAdmin) return true;
+
+    // For these test systems: remove execute permission from all non-admin users
+    if (requiredAccess === "execute") {
+      // Non-admins cannot execute files/scripts/programs
+      if (node.type === "file") return false;
+      // For directories, traverse check below
+    }
+
+    const permissionsString = String(node.permissions || (node.type === "directory" ? "755" : "644"));
+    const uPerm = parseInt(permissionsString[0] || "0", 10) || 0;
+    const gPerm = parseInt(permissionsString[1] || "0", 10) || 0;
+    const oPerm = parseInt(permissionsString[2] || "0", 10) || 0;
+
+    let activeRolePerm = oPerm; // Default to Others
+    if (activeUser && activeUser === node.owner) {
+      activeRolePerm = uPerm;
+    } else if (Array.isArray(activeGroups) && activeGroups.includes(node.group)) {
+      activeRolePerm = gPerm;
+    }
+
+    if (requiredAccess === "read") return (activeRolePerm & 4) !== 0;
+    if (requiredAccess === "write") return (activeRolePerm & 2) !== 0;
+    if (requiredAccess === "execute") return (activeRolePerm & 1) !== 0;
+
+    return false;
+  }
+
+  mkdir(path, owner = "admin", group = "admin", permissions = "755") {
     const normalized = this.normalize(path);
+    if (normalized === "/documents/zenmap/vpnguard" || normalized.startsWith("/documents/zenmap/vpnguard/")) {
+      return false;
+    }
     const parts = normalized.slice(1).split("/").filter(Boolean);
     let current = this.root;
     for (const part of parts) {
       if (!current.children[part]) {
-        current.children[part] = { type: "directory", children: {} };
+        current.children[part] = { type: "directory", children: {}, owner, group, permissions };
       } else if (current.children[part].type !== "directory") {
         return false;
       }
@@ -195,18 +368,73 @@ export class FileSystem {
     return true;
   }
 
-  touch(path) {
+  touch(path, owner = "admin", group = "admin") {
     const normalized = this.normalize(path);
     const node = this.resolve(normalized);
     if (node && node.type === "file") return true;
-    return this.write(normalized, "");
+    return this.write(normalized, "", owner, group, "644");
   }
 
-  chmod(path, mode) {
+  chmod(path, mode, activeUser = "admin") {
     const node = this.resolve(path);
-    if (!node) return false;
-    node.permissions = mode;
-    return true;
+    if (!node) return { success: false, error: "No such file or directory" };
+
+    const isAdmin = activeUser === "root" || activeUser === "admin";
+    if (!isAdmin && node.owner && node.owner !== activeUser) {
+      return { success: false, error: "Operation not permitted" };
+    }
+
+    if (/^[0-7]{3,4}$/.test(mode)) {
+      node.permissions = mode.slice(-3);
+      return { success: true };
+    }
+
+    const symbolicRegex = /^([ugoa]*)([+-=])([rwx]+)$/;
+    const match = mode.match(symbolicRegex);
+    if (match) {
+      const [, targets, op, perms] = match;
+      const targetList = targets === "" || targets.includes("a") ? ["u", "g", "o"] : targets.split("");
+      const current = String(node.permissions || (node.type === "directory" ? "755" : "644"));
+      let u = parseInt(current[0], 10) || 0;
+      let g = parseInt(current[1], 10) || 0;
+      let o = parseInt(current[2], 10) || 0;
+
+      let mask = 0;
+      if (perms.includes("r")) mask |= 4;
+      if (perms.includes("w")) mask |= 2;
+      if (perms.includes("x")) mask |= 1;
+
+      const apply = (val) => {
+        if (op === "+") return val | mask;
+        if (op === "-") return val & ~mask;
+        if (op === "=") return mask;
+        return val;
+      };
+
+      if (targetList.includes("u")) u = apply(u);
+      if (targetList.includes("g")) g = apply(g);
+      if (targetList.includes("o")) o = apply(o);
+
+      node.permissions = `${u}${g}${o}`;
+      return { success: true };
+    }
+
+    return { success: false, error: "invalid mode: '" + mode + "'" };
+  }
+
+  chown(path, ownership, activeUser = "admin") {
+    const node = this.resolve(path);
+    if (!node) return { success: false, error: "No such file or directory" };
+
+    const isAdmin = activeUser === "root" || activeUser === "admin";
+    if (!isAdmin) {
+      return { success: false, error: "Operation not permitted" };
+    }
+
+    const [user, group] = ownership.split(":");
+    if (user) node.owner = user;
+    if (group) node.group = group;
+    return { success: true };
   }
 
   list(path = "/") {
@@ -219,7 +447,10 @@ export class FileSystem {
       executable: child.executable,
       programName: child.programName,
       mime: child.mime,
-      permissions: child.permissions,
+      permissions: child.permissions || (child.type === "directory" ? "755" : "644"),
+      owner: child.owner || "admin",
+      group: child.group || (child.owner === "admin" ? "admin" : "users"),
+      content: child.content,
       path: this.normalize(path + "/" + name)
     }));
   }
@@ -232,21 +463,29 @@ export class FileSystem {
     return ["text", "py"].includes(node.format) ? node.content : binaryPreview;
   }
 
-  write(path, content) {
+  write(path, content, owner = "admin", group = "admin", permissions = "644") {
     const normalized = this.normalize(path);
     if (normalized === "/dev/null") return true;
+    if (normalized === "/documents/zenmap/vpnguard" || normalized.startsWith("/documents/zenmap/vpnguard/")) {
+      return false;
+    }
     const parts = normalized.slice(1).split("/");
     const name = parts.pop();
     const parentPath = "/" + parts.join("/");
     let parent = this.resolve(parentPath);
     if (!parent) {
-      this.mkdir(parentPath);
+      this.mkdir(parentPath, owner, group);
       parent = this.resolve(parentPath);
     }
     if (!name || !parent || parent.type !== "directory") return false;
     const format = this.determineFormat(name);
     if (format === "binary") return false;
-    parent.children[name] = { type: "file", format, content: String(content) };
+    if (parent.children[name]) {
+      parent.children[name].content = String(content);
+      parent.children[name].format = format;
+    } else {
+      parent.children[name] = { type: "file", format, content: String(content), owner, group, permissions };
+    }
     return true;
   }
 
@@ -283,8 +522,13 @@ export class FileSystem {
   cloneNode(node) {
     if (!node) return null;
     if (node.type === "directory") {
-      const cloned = { type: "directory", children: {} };
-      if (node.permissions) cloned.permissions = node.permissions;
+      const cloned = {
+        type: "directory",
+        children: {},
+        permissions: node.permissions || "755",
+        owner: node.owner || "admin",
+        group: node.group || "admin"
+      };
       for (const [key, child] of Object.entries(node.children || {})) {
         cloned.children[key] = this.cloneNode(child);
       }
@@ -293,7 +537,7 @@ export class FileSystem {
     return { ...node };
   }
 
-  copy(sourcePath, destinationPath) {
+  copy(sourcePath, destinationPath, owner = null, group = null) {
     const source = this.normalize(sourcePath);
     let destination = this.normalize(destinationPath);
     const sourceNode = this.resolve(source);
@@ -310,12 +554,15 @@ export class FileSystem {
     const destParentPath = "/" + destParts.join("/");
     let parent = this.resolve(destParentPath);
     if (!parent) {
-      this.mkdir(destParentPath);
+      this.mkdir(destParentPath, owner || "admin", group || "admin");
       parent = this.resolve(destParentPath);
     }
     if (!parent || parent.type !== "directory" || !destName) return false;
 
-    parent.children[destName] = this.cloneNode(sourceNode);
+    const copied = this.cloneNode(sourceNode);
+    if (owner) copied.owner = owner;
+    if (group) copied.group = group;
+    parent.children[destName] = copied;
     return true;
   }
 

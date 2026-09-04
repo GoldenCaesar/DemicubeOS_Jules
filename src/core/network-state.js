@@ -200,31 +200,26 @@ export class PlayerNetworkManager {
     const getHostsInSubnet = (subnetFilter) => {
       return allUnique.filter((sys) => {
         if (!sys.subnet) return false;
-        if (subnetFilter === "remote") {
-          return sys.subnet === "remote" || sys.subnet.startsWith("11.") || sys.subnet.startsWith("172.");
-        }
         return sys.subnet === subnetFilter || (sys.ip && sys.ip.startsWith(subnetFilter.replace(".0/24", ".").replace(".0/16", ".")));
       });
     };
 
     const scannableHosts = [];
 
-    // Always allow scanning of local home subnet / testbed
-    scannableHosts.push(...getHostsInSubnet("192.168.1.0/24"));
+    // Always allow scanning of local network testbed (demicube-testbox and test-laptop)
     scannableHosts.push(...getHostsInSubnet("192.168.56.0/24"));
 
     // Check VPN State
-    if (this.state.vpnMode === "WORK") {
-      // Unlock the secure corporate network
+    if (this.state.vpnMode === "CONSUMER") {
+      // Unlock the consumer VPN traffic routing node
+      scannableHosts.push(...getHostsInSubnet("172.16.5.0/24"));
+    } else if (this.state.vpnMode === "WORK") {
+      // Unlock the secure corporate network (3 systems)
       scannableHosts.push(...getHostsInSubnet("10.10.10.0/24"));
-      scannableHosts.push(...getHostsInSubnet("10.0.0.0/16"));
     } else if (this.state.vpnMode === "P2P") {
-      // Unlock the direct peer-to-peer node
+      // Unlock the direct peer-to-peer node (10.9.0.2)
       scannableHosts.push(...getHostsInSubnet("10.9.0.0/24"));
     }
-
-    // Remote external WAN targets (always visible on internet, but logging changes)
-    scannableHosts.push(...getHostsInSubnet("remote"));
 
     // Deduplicate by host id
     const seen = new Set();

@@ -2,7 +2,23 @@
   "home": {
     "admin": {
       "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, admin. This is the DemicubeOS test computer." },
-      ".bash_history": { "type": "file", "format": "text", "content": "help\nls -la\ncat /documents/mission-brief.txt\n" }
+      ".bash_history": { "type": "file", "format": "text", "content": "help\nls -la\ncat /documents/mission-brief.txt\n" },
+      ".ssh": {
+        "pbk": {
+          "admin.key": { "type": "file", "format": "text", "content": "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n" }
+        },
+        "known_hosts": {}
+      }
+    },
+    "test_user": {
+      "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, test_user. Standard user." },
+      ".bash_history": { "type": "file", "format": "text", "content": "whoami\nls -la\n" },
+      ".ssh": {
+        "pbk": {
+          "test_user.key": { "type": "file", "format": "text", "content": "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n" }
+        },
+        "known_hosts": {}
+      }
     }
   },
   "documents": {
@@ -13,23 +29,23 @@
         "type": "file",
         "format": "text",
         "content": "; ============================================================\n; Zenmap 7.94 Network Topology Save Data\n; Stored Hosts & Discovered Targets Database\n; ============================================================\n\n[settings]\ntarget=192.168.56.0/24, 10.0.0.0/16, 172.16.5.0/24\nprofile=intense\nlayout=radial\nfilter=all\nselected=demicube-testbox\nlast_scan=\n"
+      }
+    },
+    "vpnguard": {
+      "savedata.ini": {
+        "type": "file",
+        "format": "text",
+        "content": "; ============================================================\n; VPNguard Core Configuration & Profile Database\n; File: /documents/vpnguard/savedata.ini\n; ============================================================\n\n[state]\nactive_mode=OFF\nactive_profile=none\ntun_interface=none\npublic_ip=74.125.19.102\nreal_ip=74.125.19.102\nconnected_server=none\nkillswitch=enabled\ndns=1.1.1.1, 9.9.9.9\n\n[profile.consumer_anonymous]\nid=consumer_anonymous\nname=VPNguard Anonymous Consumer Service\ntype=CONSUMER\nserver=ams-node-14.vpnguard-relay.net\nlocation=Zurich, Switzerland\nassigned_tun_ip=10.8.0.4\nvirtual_public_ip=185.220.101.5\nencryption=ChaCha20-Poly1305\nprotocol=WireGuard\nstatus=available\ndescription=Encrypts all external egress traffic. Target /var/log/auth.log records 185.220.101.5 instead of your home IP.\n\n[profile.aegis_work]\nid=aegis_work\nname=Aegis Corporate Site-to-Site Gateway\ntype=WORK\nserver=vpn.aegis-security.internal\ngateway_ip=10.10.10.1\nassigned_tun_ip=10.10.10.45\ntarget_subnet=10.10.10.0/24\ncredentials_user=smiller@aegis-corp\nencryption=AES-256-GCM\nprotocol=OpenVPN\nconfig_file=/documents/vpnguard/office.ovpn\nstatus=available\ndescription=Site-to-site enterprise tunnel unlocking Aegis internal corporate subnet (10.10.10.0/24).\n\n[profile.p2p_node]\nid=p2p_node\nname=Direct P2P WireGuard Tunnel\ntype=P2P\npeer_endpoint=198.51.100.84:51820\nlocal_virtual_ip=10.9.0.1\npeer_virtual_ip=10.9.0.2\ntarget_subnet=10.9.0.0/24\npublic_key=VGhpcy1pcy1hLWZha2Utd2lyZWd1YXJkLXBrZXk=\nprotocol=WireGuard\nstatus=available\ndescription=Direct point-to-point tunnel mapping remote compromised node 10.9.0.2 on subnet 10.9.0.0/24.\n"
       },
-      "vpnguard": {
-        "savedata.ini": {
-          "type": "file",
-          "format": "text",
-          "content": "; ============================================================\n; VPNguard Core Configuration & Profile Database\n; File: /documents/vpnguard/savedata.ini\n; ============================================================\n\n[state]\nactive_mode=OFF\nactive_profile=none\ntun_interface=none\npublic_ip=74.125.19.102\nreal_ip=74.125.19.102\nconnected_server=none\nkillswitch=enabled\ndns=1.1.1.1, 9.9.9.9\n\n[profile.consumer_anonymous]\nid=consumer_anonymous\nname=VPNguard Anonymous Consumer Service\ntype=CONSUMER\nserver=ams-node-14.vpnguard-relay.net\nlocation=Zurich, Switzerland\nassigned_tun_ip=10.8.0.4\nvirtual_public_ip=185.220.101.5\nencryption=ChaCha20-Poly1305\nprotocol=WireGuard\nstatus=available\ndescription=Encrypts all external egress traffic. Target /var/log/auth.log records 185.220.101.5 instead of your home IP.\n\n[profile.aegis_work]\nid=aegis_work\nname=Aegis Corporate Site-to-Site Gateway\ntype=WORK\nserver=vpn.aegis-security.internal\ngateway_ip=10.10.10.1\nassigned_tun_ip=10.10.10.45\ntarget_subnet=10.10.10.0/24\ncredentials_user=smiller@aegis-corp\nencryption=AES-256-GCM\nprotocol=OpenVPN\nconfig_file=/documents/vpnguard/office.ovpn\nstatus=available\ndescription=Site-to-site enterprise tunnel unlocking Aegis internal corporate subnet (10.10.10.0/24).\n\n[profile.p2p_node]\nid=p2p_node\nname=Direct P2P WireGuard Tunnel\ntype=P2P\npeer_endpoint=198.51.100.84:51820\nlocal_virtual_ip=10.9.0.1\npeer_virtual_ip=10.9.0.2\ntarget_subnet=10.9.0.0/24\npublic_key=VGhpcy1pcy1hLWZha2Utd2lyZWd1YXJkLXBrZXk=\nprotocol=WireGuard\nstatus=available\ndescription=Direct point-to-point tunnel mapping remote compromised node 10.9.0.2 on subnet 10.9.0.0/24.\n"
-        },
-        "office.ovpn": {
-          "type": "file",
-          "format": "text",
-          "content": "# ============================================================\n# Aegis Security Corporate Site-to-Site VPN Profile\n# File: /documents/vpnguard/office.ovpn\n# ============================================================\nclient\ndev tun\nproto udp\nremote vpn.aegis-security.internal 1194\nresolv-retry infinite\nnobind\npersist-key\npersist-tun\nremote-cert-tls server\ncipher AES-256-GCM\nauth SHA256\nkey-direction 1\nverb 3\nroute 10.10.10.0 255.255.255.0\n"
-        },
-        "README.txt": {
-          "type": "file",
-          "format": "text",
-          "content": "VPNguard Secure Tunnel Controller v2.4.1\n=========================================\n\nGUI Launch: Click 'VPNguard' in Start Menu or run 'vpnguard' in Terminal.\nCLI Control:\n  vpnguard status\n  vpnguard connect consumer [zurich|amsterdam|newyork|tokyo]\n  vpnguard connect work aegis_work\n  vpnguard connect p2p [target_ip]\n  vpnguard disconnect\n  vpnguard profiles\n  vpnguard reload\n"
-        }
+      "office.ovpn": {
+        "type": "file",
+        "format": "text",
+        "content": "# ============================================================\n# Aegis Security Corporate Site-to-Site VPN Profile\n# File: /documents/vpnguard/office.ovpn\n# ============================================================\nclient\ndev tun\nproto udp\nremote vpn.aegis-security.internal 1194\nresolv-retry infinite\nnobind\npersist-key\npersist-tun\nremote-cert-tls server\ncipher AES-256-GCM\nauth SHA256\nkey-direction 1\nverb 3\nroute 10.10.10.0 255.255.255.0\n"
+      },
+      "README.txt": {
+        "type": "file",
+        "format": "text",
+        "content": "VPNguard Secure Tunnel Controller v2.4.1\n=========================================\n\nGUI Launch: Click 'VPNguard' in Start Menu or run 'vpnguard' in Terminal.\nCLI Control:\n  vpnguard status\n  vpnguard connect consumer [zurich|amsterdam|newyork|tokyo]\n  vpnguard connect work aegis_work\n  vpnguard connect p2p [target_ip]\n  vpnguard disconnect\n  vpnguard profiles\n  vpnguard reload\n"
       }
     }
   },

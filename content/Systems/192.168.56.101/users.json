@@ -3,10 +3,19 @@
     {
       "id": "admin",
       "username": "admin",
-      "password": "admin",
+      "password": "3tHr90",
       "role": "admin",
       "permissions": ["full"],
       "homeDir": "/home/admin",
+      "systemId": "192.168.56.101"
+    },
+    {
+      "id": "test_user",
+      "username": "test_user",
+      "password": "password123",
+      "role": "user",
+      "permissions": ["user"],
+      "homeDir": "/home/test_user",
       "systemId": "192.168.56.101"
     }
   ]

@@ -9,6 +9,7 @@ export class CodePadApp {
 
   start() {
     this.ui.showCodePad();
+    this.windowManager?.focus("codepad");
     this.ui.appendTerminalLine("CodePad+ opened. Use open <path> for a .txt or .py file.");
   }
 
@@ -19,6 +20,7 @@ export class CodePadApp {
     this.activePath = path;
     this.ui.showCodePadFile(path, this.tabs.get(path).content);
     this.ui.renderCodePadTabs([...this.tabs.keys()], path);
+    this.windowManager?.focus("codepad");
     return true;
   }
 

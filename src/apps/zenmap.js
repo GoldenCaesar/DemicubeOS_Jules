@@ -722,6 +722,23 @@ export class ZenMapApp {
     if (cliTerminal && !cliTerminal.appendLine && cliTerminal.ui?.appendTerminalLine) {
       cliTerminal.appendLine = (line) => cliTerminal.ui.appendTerminalLine(line);
     }
+    const loggingSystem = window.loggingSystem || (cliTerminal?.loggingSystem);
+    const term = cliTerminal || this.terminal;
+    const currentSession = loggingSystem?.getCurrentSession();
+    const user = currentSession?.user || term?.getActiveUser?.() || term?.profile?.promptUser || "admin";
+    const isAdmin = user === "admin" || user === "root" || (term?.loginManager?.isAdmin?.());
+    if (!isAdmin) {
+      const msg = "Permission denied: administrative privileges required to execute network scan.";
+      if (term && term.appendLine) {
+        term.appendLine(msg);
+      } else if (term?.ui?.appendTerminalLine) {
+        term.ui.appendTerminalLine(msg);
+      }
+      if (this.statusBanner) {
+        this.statusBanner.textContent = "Error: Permission denied (administrative privileges required).";
+      }
+      return;
+    }
     if (this.isScanning) return;
     this.isScanning = true;
 
@@ -1094,19 +1111,6 @@ export class ZenMapApp {
           </div>
         </header>
 
-        <div class="inspector-actions">
-          ${
-            !isLocal
-              ? `<button id="inspector-btn-ssh" class="inspector-action-btn primary" title="Open SSH session [CLI: zenmap ssh ${sys.ip}]">
-                  <span>⚡</span> SSH Connect (${sys.ip})
-                </button>`
-              : `<span class="inspector-local-note">★ Current Local Workstation</span>`
-          }
-          <button id="inspector-btn-scan" class="inspector-action-btn" title="Rescan this target [CLI: zenmap rescan ${sys.hostname}]">
-            <span>🔍</span> Rescan Target
-          </button>
-        </div>
-
         <div class="inspector-section">
           <h4>Host Specification</h4>
           <dl class="inspector-dl">
@@ -1145,23 +1149,6 @@ export class ZenMapApp {
         </div>
       </div>
     `;
-
-    this.hostInspector.querySelector("#inspector-btn-ssh")?.addEventListener("click", () => {
-      const user = sys.user || "admin";
-      if (this.terminal) {
-        this.terminal.submitCommand(`ssh ${user}@${sys.ip}`);
-      } else {
-        this.connectViaSSH(sys.ip, user);
-      }
-    });
-
-    this.hostInspector.querySelector("#inspector-btn-scan")?.addEventListener("click", () => {
-      if (this.terminal) {
-        this.terminal.submitCommand(`zenmap scan ${sys.ip}`);
-      } else {
-        this.triggerScan();
-      }
-    });
   }
 
   renderHostsTable() {
@@ -1186,7 +1173,6 @@ export class ZenMapApp {
           <td>${sys.role}</td>
           <td>
             <button class="zenmap-mini-btn inspect-btn" data-action-inspect="${sys.id}" title="Inspect in topology [CLI: zenmap inspect ${sys.hostname}]">Inspect</button>
-            ${!isLocal ? `<button class="zenmap-mini-btn ssh-btn" data-action-ssh="${sys.ip}" title="SSH connect [CLI: zenmap ssh ${sys.ip}]">SSH</button>` : ""}
             ${!isLocal ? `<button class="zenmap-mini-btn remove-btn" data-action-rm="${sys.id}" title="Remove host [CLI: zenmap rm ${sys.hostname}]">Rm</button>` : ""}
           </td>
         </tr>
@@ -1203,18 +1189,6 @@ export class ZenMapApp {
         } else {
           this.selectHost(hostId);
           this.switchTab("topology");
-        }
-      });
-    });
-
-    tableBody.querySelectorAll("[data-action-ssh]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const ip = btn.dataset.actionSsh;
-        if (this.terminal) {
-          this.terminal.submitCommand("ssh admin@" + ip);
-        } else {
-          this.connectViaSSH(ip);
         }
       });
     });

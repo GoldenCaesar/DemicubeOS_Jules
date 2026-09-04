@@ -62,6 +62,7 @@ export class LoggingSystem {
         hostname: sys.hostname,
         ip: sys.ip,
         user: sys.user || "admin",
+        passwords: sys.passwords || { admin: "3tHr90" },
         fileSystem: fs
       };
 

@@ -50,8 +50,13 @@ export class FilesApp {
       return true;
     }
 
-    if (node.format === "audio" && this.musicPlayer) this.musicPlayer.play(path);
-    else if (this.codePadApp) this.codePadApp.open(path);
+    if (node.format === "audio" && this.musicPlayer) {
+      if (this.launchProgram) this.launchProgram("music-player");
+      this.musicPlayer.play(path);
+    } else if (this.codePadApp) {
+      if (this.launchProgram) this.launchProgram("codepad-plus");
+      this.codePadApp.open(path);
+    }
     return true;
   }
 

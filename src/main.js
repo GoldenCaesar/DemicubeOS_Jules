@@ -78,7 +78,6 @@ async function main() {
     windowManager.reset([]);
     terminal.processes = new Map([[1, "system"]]);
     resourceManager.reset();
-    fileSystem.reset();
     terminal.setCurrentDirectory("/");
     files.setPath("/", false);
 
@@ -86,6 +85,8 @@ async function main() {
     ui.showDesktop();
     refreshProgramCatalog();
     if (input) input.setSessionActive(false);
+    loginManager.logout();
+    ui.setKnownLogins?.(loginManager.getKnownLogins());
     ui.showLoginScreen();
     isCrashing = false;
   };
@@ -176,9 +177,14 @@ async function main() {
   ui.renderProgramMenu(programCatalog);
   terminal.availablePrograms = systemDefinition.programs;
   terminal.programChanged = refreshProgramCatalog;
+  terminal.loginManager = loginManager;
   terminal.launchProgram = (programId) => {
     if (programId === "system") {
       terminal.ui.appendTerminalLine("System daemon is already running.");
+      return;
+    }
+    if (programId !== "terminal" && !loginManager.isAdmin()) {
+      terminal.ui.appendTerminalLine(`Permission denied: execution not permitted for non-admin user (${loginManager.currentUser?.username || "user"}).`);
       return;
     }
     const process = programId === "terminal"
@@ -230,7 +236,6 @@ async function main() {
     windowManager.reset([]);
     terminal.processes = new Map([[1, "system"]]);
     resourceManager.reset();
-    fileSystem.reset();
     terminal.setCurrentDirectory("/");
     files.setPath("/", false);
     // Show boot sequence on restart
@@ -238,6 +243,8 @@ async function main() {
     ui.showDesktop();
     refreshProgramCatalog();
     input.setSessionActive(false);
+    loginManager.logout();
+    ui.setKnownLogins?.(loginManager.getKnownLogins());
     ui.showLoginScreen();
   };
   ui.onFileOpen((path) => {
@@ -359,11 +366,13 @@ async function main() {
   ui.onLogout(() => {
     loggingSystem.logAuth("logout", { user: terminal.profile.promptUser, hostname: systemDefinition.hostname });
     loggingSystem.stopBackgroundDaemon();
+    loginManager.logout();
     input.setSessionActive(false);
     ui.closeAllWindows();
     terminal.processes = new Map([[1, "system"]]);
     resourceManager.reset();
     windowManager.reset([]);
+    ui.setKnownLogins?.(loginManager.getKnownLogins());
     ui.showLoginScreen();
   });
   const logIn = (username, password) => {
@@ -386,6 +395,8 @@ async function main() {
     loggingSystem.logAuth("login", { user: username, hostname: systemDefinition.hostname });
   };
   ui.onLogin(logIn);
+  loginManager.setFileSystem(fileSystem);
+  ui.setKnownLogins?.(loginManager.getKnownLogins());
   input.setSessionActive(false);
   ui.showLoginScreen();
   ui.appendTerminalLine("Desktop ready. Alt+A and Alt+D cycle focus.");

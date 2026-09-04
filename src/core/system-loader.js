@@ -20,7 +20,24 @@ export const FALLBACK_SYSTEM = {
     { port: 80, protocol: "tcp", service: "http", state: "open" }
   ],
   filesystem: {
-    home: { admin: { "welcome.txt": { type: "file", format: "text", content: "Welcome, admin. This is the DemicubeOS test computer." }, ".bash_history": { type: "file", format: "text", content: "help\nls -la\ncat /documents/mission-brief.txt\n" } } },
+    home: {
+      admin: {
+        "welcome.txt": { type: "file", format: "text", content: "Welcome, admin. This is the DemicubeOS test computer." },
+        ".bash_history": { type: "file", format: "text", content: "help\nls -la\ncat /documents/mission-brief.txt\n" },
+        ".ssh": {
+          pbk: { "admin.key": { type: "file", format: "text", content: "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n" } },
+          known_hosts: {}
+        }
+      },
+      test_user: {
+        "welcome.txt": { type: "file", format: "text", content: "Welcome, test_user. Full admin access user." },
+        ".bash_history": { type: "file", format: "text", content: "whoami\nls -la\n" },
+        ".ssh": {
+          pbk: { "test_user.key": { type: "file", format: "text", content: "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n" } },
+          known_hosts: {}
+        }
+      }
+    },
     documents: {
       "mission-brief.txt": { type: "file", format: "text", content: "Test computer mission files." },
       "example.py": { type: "file", format: "py", content: "print('DemicubeOS ready')" },
@@ -52,7 +69,10 @@ export const FALLBACK_SYSTEM = {
     log: { "boot.log": { type: "file", format: "text", content: "DemicubeOS boot completed." } },
     sys: { "wallpaper.bin": { type: "file", format: "binary" }, "theme.bin": { type: "file", format: "binary" }, "kernel.sys": { type: "file", format: "binary" } }
   },
-  users: [{ id: "admin", username: "admin", password: "admin", role: "admin", permissions: ["full"], homeDir: "/home/admin" }]
+  users: [
+    { id: "admin", username: "admin", password: "3tHr90", role: "admin", permissions: ["full"], homeDir: "/home/admin" },
+    { id: "test_user", username: "test_user", password: "password123", role: "admin", permissions: ["full"], homeDir: "/home/test_user" }
+  ]
 };
 
 export async function loadSystemDefinition() {
