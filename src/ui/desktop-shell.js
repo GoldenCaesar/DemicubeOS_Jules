@@ -127,7 +127,7 @@ export function createDesktopShell(rootElement, profile) {
     "    </section>",
     "    <section id=\"vpnguard-window\" class=\"app-window window-surface hidden vpnguard-window\" data-window-id=\"vpnguard\">",
     "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">VPNguard 2.4.1 <span class=\"system-badge\">NETWORK ENCRYPTION LAYER</span></div><div class=\"focus-label\" id=\"vpnguard-header-subtext\">Interface: tun0 · Egress: 74.125.19.102</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
-    "      <div class=\"vpnguard-toolbar\"><div class=\"vpnguard-status-pill disconnected\" id=\"vpnguard-status-pill\"><span class=\"vpnguard-pulse off\"></span> DISCONNECTED (DIRECT LAN)</div><div class=\"vpnguard-nav-tabs\"><button class=\"vpnguard-tab-btn active\" data-vpnguard-tab=\"dashboard\">Tunnel Modes</button><button class=\"vpnguard-tab-btn\" data-vpnguard-tab=\"profiles\">Profiles (/documents/vpnguard/)</button><button class=\"vpnguard-tab-btn\" data-vpnguard-tab=\"routes\">Routing &amp; Adapters</button><button class=\"vpnguard-tab-btn\" data-vpnguard-tab=\"cli\">CLI Reference</button></div></div>",
+    "      <div class=\"vpnguard-toolbar\"><div class=\"vpnguard-status-pill disconnected\" id=\"vpnguard-status-pill\"><span class=\"vpnguard-pulse off\"></span> DISCONNECTED</div></div>",
     "      <div id=\"vpnguard-content-area\" class=\"vpnguard-content-area\"></div>",
     "    </section>",
     "    <section class=\"terminal-window window-surface\" data-window-id=\"terminal-main\">",
