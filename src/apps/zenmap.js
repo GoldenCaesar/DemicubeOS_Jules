@@ -134,6 +134,7 @@ export class ZenMapApp {
             latency: "1.0ms",
             hops: 1,
             mac: "08:00:27:xx:xx:xx",
+            accessLevel: "locked",
             ports: []
           };
           hosts.set(hostId, currentHost);
@@ -211,6 +212,7 @@ export class ZenMapApp {
       lines.push(`latency=${host.latency || "1.0ms"}`);
       lines.push(`hops=${host.hops || 1}`);
       lines.push(`mac=${host.mac || "08:00:27:xx:xx:xx"}`);
+      lines.push(`access_level=${host.accessLevel || "locked"}`);
 
       const portsStr = (host.ports || [])
         .map((p) => `${p.port}/${p.protocol || "tcp"}/${p.state || "open"}/${p.service || "svc"}${p.version ? ":" + p.version : ""}`)
@@ -982,30 +984,21 @@ export class ZenMapApp {
         nodeColorClass = "node-localhost";
         iconSymbol = "★";
         badgeLabel = "YOU (Localhost)";
-      } else if (isRouter) {
-        nodeColorClass = "node-router";
-        iconSymbol = "⛫";
-        badgeLabel = "GATEWAY";
-      } else if (isStevesTestbox) {
-        nodeColorClass = "node-steve";
-        iconSymbol = "🧪";
-        badgeLabel = "STEVE'S SANDBOX";
-      } else if (sys.category === "corporate" || sys.subnet === "10.10.10.0/24") {
-        nodeColorClass = "node-corporate";
-        iconSymbol = "🏛️";
-        badgeLabel = "AEGIS CORP";
-      } else if (sys.category === "p2p" || sys.subnet === "10.9.0.0/24") {
-        nodeColorClass = "node-p2p";
-        iconSymbol = "⚡";
-        badgeLabel = "P2P PEER";
-      } else if (sys.type === "server") {
-        nodeColorClass = "node-server";
-        iconSymbol = "🖳";
-        badgeLabel = "SERVER";
-      } else if (sys.type === "relay") {
-        nodeColorClass = "node-relay";
-        iconSymbol = "📡";
-        badgeLabel = "UPLINK";
+      } else {
+        const acc = sys.accessLevel || "locked";
+        if (acc === "admin") {
+          nodeColorClass = "node-green";
+          iconSymbol = "🛡️";
+          badgeLabel = "ADMIN";
+        } else if (acc === "user") {
+          nodeColorClass = "node-blue";
+          iconSymbol = "👤";
+          badgeLabel = "USER";
+        } else {
+          nodeColorClass = "node-red";
+          iconSymbol = "🔒";
+          badgeLabel = "LOCKED";
+        }
       }
 
       const nodeRadius = isLocalhost ? 30 : isStevesTestbox ? 26 : 22;

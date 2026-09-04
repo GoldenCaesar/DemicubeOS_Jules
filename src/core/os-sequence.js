@@ -31,21 +31,21 @@ async function simulateOSSequence(osName = "DemicubeOS", state = "on", print = c
   const sysName = osName.toUpperCase();
 
   if (state === "on") {
-    // Slow loading delay before starting (3-8 seconds)
-    const initialDelay = 3000 + Math.random() * 5000;
+    // Fast loading delay before starting (< 4 seconds total)
+    const initialDelay = 300 + Math.random() * 200;
     await sleep(initialDelay);
 
     // 1. EFI header phase
     print(`${c.dim}${sysName}-EFI :: BOOT_TARGET_X86_64 | BUILD: 6.8.9-SECUREBOOT-ENFORCED${c.reset}`);
     print(`${c.cyan}${c.bold}${osName} v1.0.4 Enterprise Kernel Bootloader${c.reset}`);
-    await sleep(500);
+    await sleep(200);
     print(`${c.mint}[MEM]${c.reset} Memory Verification: 65536MB OK`);
     print(`${c.mint}[CPU]${c.reset} Quantum Core x86_64 @ 4.20GHz (16 Cores, 32 Threads)`);
     print(`${c.mint}[SEC]${c.reset} AES-NI: Active | SMEP/SMAP: Enforced`);
     print("");
     
-    // Pause before kernel phase (3-8 seconds)
-    const kernelDelay = 3000 + Math.random() * 5000;
+    // Pause before kernel phase
+    const kernelDelay = 300 + Math.random() * 200;
     await sleep(kernelDelay);
 
     // 2. low level kernel logs
@@ -61,14 +61,14 @@ async function simulateOSSequence(osName = "DemicubeOS", state = "on", print = c
 
     let t = 0.0;
     for (const log of kLogs) {
-      t += Math.random() * 0.15;
+      t += Math.random() * 0.05;
       print(`${c.dim}[ ${t.toFixed(6)}]${c.reset} ${log}`);
-      await sleep(150 + Math.random() * 250);
+      await sleep(40 + Math.random() * 50);
     }
     print("");
 
-    // Pause before session phase (3-8 seconds)
-    const sessionDelay = 3000 + Math.random() * 5000;
+    // Pause before session phase
+    const sessionDelay = 300 + Math.random() * 200;
     await sleep(sessionDelay);
 
     // 3. systemd initialization OKs
@@ -84,7 +84,7 @@ async function simulateOSSequence(osName = "DemicubeOS", state = "on", print = c
 
     for (const svc of services) {
       print(`[  ${c.mint}OK${c.reset}  ] ${svc}`);
-      await sleep(100 + Math.random() * 200);
+      await sleep(40 + Math.random() * 50);
     }
   } else if (state === "crash") {
     // Blue Screen of Death effect

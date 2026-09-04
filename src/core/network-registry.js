@@ -631,6 +631,11 @@ export class NetworkRegistry {
     return this.systems.get(identifier.trim()) || null;
   }
 
+  getLocalSystem() {
+    const systems = this.getAllUniqueSystems();
+    return systems.find((s) => s.type === "localhost") || this.getSystem("demicube-testbox") || null;
+  }
+
   getAllUniqueSystems() {
     // Unique systems by id
     const seen = new Set();

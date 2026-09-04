@@ -1922,6 +1922,36 @@ body {
   fill: #0f3044;
 }
 
+.node-red .node-circle {
+  stroke: #ef4444;
+  fill: #3b1414;
+}
+.node-red:hover .node-circle {
+  stroke: #f87171;
+  fill: #4d1c1c;
+  filter: drop-shadow(0 0 8px #ef4444);
+}
+
+.node-blue .node-circle {
+  stroke: #3b82f6;
+  fill: #14243b;
+}
+.node-blue:hover .node-circle {
+  stroke: #60a5fa;
+  fill: #1d355e;
+  filter: drop-shadow(0 0 8px #3b82f6);
+}
+
+.node-green .node-circle {
+  stroke: #10b981;
+  fill: #103328;
+}
+.node-green:hover .node-circle {
+  stroke: #34d399;
+  fill: #154d3d;
+  filter: drop-shadow(0 0 8px #10b981);
+}
+
 .node-router .node-circle {
   stroke: #818cf8;
   fill: #21204d;
