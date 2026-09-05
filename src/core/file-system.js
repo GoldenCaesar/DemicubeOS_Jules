@@ -69,7 +69,14 @@ export class FileSystem {
           children: {
             "mission-brief.txt": this.textFile("Mission files will appear here.\nKeep your notes close.", "admin", "admin", "644"),
             "example.py": { type: "file", format: "py", content: "print('DemicubeOS ready')", permissions: "755", owner: "admin", group: "admin" },
-            "evidence.bin": this.binaryFile("admin", "admin", "755")
+            "evidence.bin": this.binaryFile("admin", "admin", "755"),
+            "clawder-python": {
+              type: "directory",
+              permissions: "755",
+              owner: "admin",
+              group: "admin",
+              children: {}
+            }
           }
         },
         programs: {
@@ -160,6 +167,7 @@ export class FileSystem {
     this.mkdir("/documents");
     this.mkdir("/documents/zenmap");
     this.mkdir("/documents/vpnguard");
+    this.mkdir("/documents/clawder-python");
     this.mkdir("/home/admin");
     this.mkdir("/home/admin/.ssh", "admin", "admin", "700");
     this.mkdir("/home/admin/.ssh/pbk", "admin", "admin", "700");
@@ -318,20 +326,46 @@ export class FileSystem {
     const node = this.resolve(filePath);
     if (!node) return false;
 
-    // Admins and root always bypass DAC checks with full access
-    const isAdmin = activeUser === "root" ||
-                    activeUser === "admin" ||
-                    (Array.isArray(activeGroups) && (activeGroups.includes("admin") || activeGroups.includes("root") || activeGroups.includes("wheel") || activeGroups.includes("sudo")));
-    if (isAdmin) return true;
+    // Root always bypasses DAC checks with full access
+    if (activeUser === "root") return true;
 
-    // For these test systems: remove execute permission from all non-admin users
-    if (requiredAccess === "execute") {
-      // Non-admins cannot execute files/scripts/programs
-      if (node.type === "file") return false;
-      // For directories, traverse check below
+    // Admins and sudo users have full access
+    const isAdmin = activeUser === "admin" ||
+                    (Array.isArray(activeGroups) && (activeGroups.includes("admin") || activeGroups.includes("root") || activeGroups.includes("wheel") || activeGroups.includes("sudo")));
+    if (isAdmin) {
+      if (requiredAccess === "execute" && node.type === "file") {
+        const pStr = String(node.permissions || "644").padStart(3, "0").slice(-3);
+        const hasExecBit = (parseInt(pStr[0], 10) & 1) !== 0 || (parseInt(pStr[1], 10) & 1) !== 0 || (parseInt(pStr[2], 10) & 1) !== 0;
+        return hasExecBit || Boolean(node.executable);
+      }
+      return true;
     }
 
-    const permissionsString = String(node.permissions || (node.type === "directory" ? "755" : "644"));
+    // Non-admin traversal check: verify execute permission on all ancestor directories
+    const normalized = this.normalize(filePath);
+    const parts = normalized.slice(1).split("/").filter(Boolean);
+    let curr = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      curr += "/" + parts[i];
+      const dirNode = this.resolve(curr);
+      if (dirNode && dirNode.type === "directory") {
+        const dStr = String(dirNode.permissions || "755").padStart(3, "0").slice(-3);
+        const du = parseInt(dStr[0], 10) || 0;
+        const dg = parseInt(dStr[1], 10) || 0;
+        const do_ = parseInt(dStr[2], 10) || 0;
+        let dPerm = do_;
+        if (activeUser && activeUser === dirNode.owner) {
+          dPerm = du;
+        } else if (Array.isArray(activeGroups) && activeGroups.includes(dirNode.group)) {
+          dPerm = dg;
+        }
+        if ((dPerm & 1) === 0) {
+          return false;
+        }
+      }
+    }
+
+    const permissionsString = String(node.permissions || (node.type === "directory" ? "755" : "644")).padStart(3, "0").slice(-3);
     const uPerm = parseInt(permissionsString[0] || "0", 10) || 0;
     const gPerm = parseInt(permissionsString[1] || "0", 10) || 0;
     const oPerm = parseInt(permissionsString[2] || "0", 10) || 0;

@@ -118,8 +118,14 @@ async function main() {
     return Boolean(processEntry && terminal.processes.has(processEntry[0]) && ui.isWindowVisible(windowId));
   });
 
-  const codePad = new CodePadApp({ ui, fileSystem, windowManager });
-  const clawderPython = new ClawderPythonApp({ ui });
+  const codePad = new CodePadApp({ ui, fileSystem, windowManager, terminal });
+  const clawderPython = new ClawderPythonApp({
+    ui,
+    fileSystem,
+    loginManager,
+    loggingSystem,
+    getFilesApp: () => files
+  });
   const settings = new SettingsApp({ ui });
   const system = new SystemApp({ ui, loggingSystem });
   const musicPlayer = new MusicPlayerApp({ ui, fileSystem });
@@ -181,10 +187,6 @@ async function main() {
   terminal.launchProgram = (programId) => {
     if (programId === "system") {
       terminal.ui.appendTerminalLine("System daemon is already running.");
-      return;
-    }
-    if (programId !== "terminal" && !loginManager.isAdmin()) {
-      terminal.ui.appendTerminalLine(`Permission denied: execution not permitted for non-admin user (${loginManager.currentUser?.username || "user"}).`);
       return;
     }
     const process = programId === "terminal"
@@ -367,6 +369,11 @@ async function main() {
     loggingSystem.logAuth("logout", { user: terminal.profile.promptUser, hostname: systemDefinition.hostname });
     loggingSystem.stopBackgroundDaemon();
     loginManager.logout();
+    if (loggingSystem.sessionChain?.length > 0) {
+      loggingSystem.sessionChain[0].user = "admin";
+    }
+    terminal.profile.promptUser = "admin";
+    terminal.currentPath = "/home/admin";
     input.setSessionActive(false);
     ui.closeAllWindows();
     terminal.processes = new Map([[1, "system"]]);
@@ -385,7 +392,10 @@ async function main() {
     resourceManager.reset();
     terminal.profile.promptUser = loginManager.currentUser.username;
     terminal.profile.promptHost = systemDefinition.hostname;
-    terminal.currentPath = loginManager.currentUser.homeDir;
+    terminal.currentPath = loginManager.currentUser.homeDir || `/home/${username}`;
+    if (loggingSystem.sessionChain?.length > 0) {
+      loggingSystem.sessionChain[0].user = username;
+    }
     terminal.updatePromptPrefix();
     files.setPath(terminal.currentPath, false);
     ui.showDesktop();

@@ -1,8 +1,9 @@
 export class CodePadApp {
-  constructor({ ui, fileSystem, windowManager }) {
+  constructor({ ui, fileSystem, windowManager, terminal = null }) {
     this.ui = ui;
     this.fileSystem = fileSystem;
     this.windowManager = windowManager;
+    this.terminal = terminal;
     this.tabs = new Map();
     this.activePath = null;
   }
@@ -13,9 +14,17 @@ export class CodePadApp {
     this.ui.appendTerminalLine("CodePad+ opened. Use open <path> for a .txt or .py file.");
   }
 
-  open(path) {
+  open(path, activeUser = null, activeGroups = null) {
     const node = this.fileSystem.resolve(path);
     if (!node || node.type !== "file" || !["text", "py"].includes(node.format)) return false;
+
+    const user = activeUser || this.terminal?.getActiveUser?.() || "admin";
+    const groups = activeGroups || this.terminal?.getActiveGroups?.() || ["users"];
+
+    if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+      return false;
+    }
+
     this.tabs.set(path, { content: this.fileSystem.read(path), format: node.format });
     this.activePath = path;
     this.ui.showCodePadFile(path, this.tabs.get(path).content);

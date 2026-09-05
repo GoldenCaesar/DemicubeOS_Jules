@@ -81,9 +81,9 @@ export function createDesktopShell(rootElement, profile) {
     "      <div id=\"codepad-tabs\" class=\"codepad-tabs\"></div>",
     "      <pre id=\"codepad-content\" class=\"file-preview\">Open a .txt or .py file to view it.</pre>",
     "    </section>",
-    "    <section id=\"clawder-window\" class=\"app-window window-surface hidden\" data-window-id=\"clawder-python\">",
-    "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Clawder Python</div><div class=\"focus-label\">AI assistant</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
-    "      <div class=\"clawder-content\"><strong>Clawder Python</strong><span>no prompts</span></div>",
+    "    <section id=\"clawder-window\" class=\"app-window window-surface hidden clawder-window\" data-window-id=\"clawder-python\">",
+    "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Clawder Python <span class=\"system-badge\">AI REPO</span></div><div id=\"clawder-header-subtitle\" class=\"focus-label\">Store Catalog</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
+    "      <div id=\"clawder-app-container\" class=\"clawder-app-container\"></div>",
     "    </section>",
     "    <section id=\"start-menu\" class=\"start-menu hidden\" aria-label=\"Start Menu\">",
     "      <div class=\"start-menu-search\">Search apps and missions...</div>",
@@ -618,7 +618,7 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   function showClawderPython() {
-    clawderWindow.classList.remove("hidden");
+    setWindowVisible("clawder-python", true);
   }
   function showSettings() {
     settingsWindow.classList.remove("hidden");

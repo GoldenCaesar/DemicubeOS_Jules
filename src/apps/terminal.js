@@ -38,7 +38,8 @@ export class TerminalApp {
       "help", "clear", "echo", "date", "whoami", "id", "groups", "hostname", "pwd", "ls", "ll", "cd", "cat", "open", "cp", "mv", "rm",
       "install", "reboot", "python3", "python", "ps", "kill", "focus", "exit", "logout", "disconnect",
       "terminal", "files", "settings", "system", "task-manager", "music-player", "music", "zenmap", "vpnguard", "codepad", "codepad+", "clawder-python", "snap",
-      "ssh", "nano", "grep", "sudo", "touch", "chmod", "chown", "mkdir", "session", "sessions", "ifconfig", "curl", "ip", "route"
+      "ssh", "nano", "grep", "sudo", "touch", "chmod", "chown", "mkdir", "session", "sessions", "ifconfig", "curl", "ip", "route",
+      "head", "tail", "more", "less", "sed"
     ];
     this.commandDocs = {
       help: [
@@ -886,6 +887,88 @@ export class TerminalApp {
         "",
         "EXAMPLES",
         "  clawder-python"
+      ],
+      head: [
+        "NAME",
+        "  head - output the first part of files",
+        "",
+        "SYNOPSIS",
+        "  head [OPTION]... [FILE]...",
+        "",
+        "DESCRIPTION",
+        "  Print the first 10 lines of each FILE to standard output.",
+        "  Requires read (r) permission on the target file and execute (x) on all ancestor directories.",
+        "",
+        "OPTIONS",
+        "  -n NUM   print the first NUM lines instead of the first 10",
+        "",
+        "EXAMPLES",
+        "  head welcome.txt",
+        "  head -n 5 system.log"
+      ],
+      tail: [
+        "NAME",
+        "  tail - output the last part of files",
+        "",
+        "SYNOPSIS",
+        "  tail [OPTION]... [FILE]...",
+        "",
+        "DESCRIPTION",
+        "  Print the last 10 lines of each FILE to standard output.",
+        "  Requires read (r) permission on the target file and execute (x) on all ancestor directories.",
+        "",
+        "OPTIONS",
+        "  -n NUM   output the last NUM lines, instead of the last 10",
+        "",
+        "EXAMPLES",
+        "  tail welcome.txt",
+        "  tail -n 20 /var/log/syslog"
+      ],
+      more: [
+        "NAME",
+        "  more - file perusal filter for crt viewing",
+        "",
+        "SYNOPSIS",
+        "  more [FILE]",
+        "",
+        "DESCRIPTION",
+        "  Displays the contents of a file in the terminal window.",
+        "  Enforces standard Unix read permissions before opening.",
+        "",
+        "EXAMPLES",
+        "  more welcome.txt"
+      ],
+      less: [
+        "NAME",
+        "  less - opposite of more; view file contents",
+        "",
+        "SYNOPSIS",
+        "  less [FILE]",
+        "",
+        "DESCRIPTION",
+        "  View the contents of a file in the terminal window.",
+        "  Enforces standard Unix read permissions before opening.",
+        "",
+        "EXAMPLES",
+        "  less welcome.txt"
+      ],
+      sed: [
+        "NAME",
+        "  sed - stream editor for filtering and transforming text",
+        "",
+        "SYNOPSIS",
+        "  sed [-i] 's/regexp/replacement/flags' [FILE]",
+        "",
+        "DESCRIPTION",
+        "  Sed is a stream editor used to perform basic text transformations.",
+        "  Enforces read permission when displaying changes and write permission when using -i in-place editing.",
+        "",
+        "OPTIONS",
+        "  -i       edit files in place (requires write permission on the file)",
+        "",
+        "EXAMPLES",
+        "  sed 's/foo/bar/g' test.txt",
+        "  sed -i 's/127.0.0.1/localhost/g' hosts.ini"
       ]
     };
   }
@@ -912,16 +995,26 @@ export class TerminalApp {
 
   getActiveUser() {
     if (this.isElevated) return "root";
+    if (this.loggingSystem?.sessionChain?.length > 1) {
+      const currentSession = this.loggingSystem.getCurrentSession();
+      if (currentSession?.user) return currentSession.user;
+    }
+    if (this.loginManager?.currentUser?.username) {
+      return this.loginManager.currentUser.username;
+    }
     const currentSession = this.loggingSystem?.getCurrentSession();
-    return currentSession?.user || this.profile?.promptUser || this.loginManager?.currentUser?.username || "admin";
+    return currentSession?.user || this.profile?.promptUser || "admin";
   }
 
   getActiveGroups() {
     const user = this.getActiveUser();
-    if (user === "root" || user === "admin" || this.loginManager?.isAdmin?.()) {
+    const isAdmin = user === "root" ||
+                    user === "admin" ||
+                    (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
+    if (isAdmin) {
       return ["root", "admin", "wheel", "sudo"];
     }
-    return [user, "users"];
+    return ["users", user];
   }
 
   setCurrentDirectory(path) {
@@ -932,7 +1025,7 @@ export class TerminalApp {
 
   updatePromptPrefix() {
     const currentSession = this.loggingSystem?.getCurrentSession();
-    const user = currentSession?.user || this.profile.promptUser;
+    const user = this.getActiveUser();
     const host = currentSession?.hostname || this.profile.promptHost;
     const homeDir = "/home/" + user;
     let displayPath = this.currentPath;
@@ -941,7 +1034,8 @@ export class TerminalApp {
     } else if (displayPath.startsWith(homeDir + "/")) {
       displayPath = "~" + displayPath.slice(homeDir.length);
     }
-    this.promptPrefix = user + "@" + host + ":" + displayPath + "$ ";
+    const symbol = (user === "root" || this.isElevated) ? "# " : "$ ";
+    this.promptPrefix = user + "@" + host + ":" + displayPath + symbol;
     this.ui.setTerminalTitle?.("Terminal - " + user + "@" + host + ":" + displayPath);
     this.ui.setPrompt?.(this.promptPrefix, this.buffer);
   }
@@ -1290,6 +1384,7 @@ export class TerminalApp {
     }
 
     const output = this.executeCommandCaptured(leftCmd);
+    if (output.hadError) return;
     const content = output.join("\n") + (output.length ? "\n" : "");
     if (isAppend) {
       this.fileSystem.append(resolved, content);
@@ -1316,14 +1411,25 @@ export class TerminalApp {
 
   executeCommandCaptured(cmdStr, stdin = null) {
     const captured = [];
+    const errors = [];
     const origAppend = this.ui.appendTerminalLine.bind(this.ui);
     this.ui.appendTerminalLine = (line) => {
-      captured.push(line);
+      if (typeof line === "string" && (line.includes("Permission denied") || line.includes("No such file") || line.includes("Is a directory") || line.includes("cannot access") || line.includes("Command not found") || line.includes("invalid mode"))) {
+        errors.push(line);
+      } else {
+        captured.push(line);
+      }
     };
     try {
       this.executeSingleCommand(cmdStr, stdin);
     } finally {
       this.ui.appendTerminalLine = origAppend;
+    }
+    for (const err of errors) {
+      origAppend(err);
+    }
+    if (errors.length > 0) {
+      captured.hadError = true;
     }
     return captured;
   }
@@ -1546,6 +1652,27 @@ export class TerminalApp {
         return;
       }
       const path = this.resolvePath(target);
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      const existing = this.fileSystem.resolve(path);
+
+      if (existing) {
+        if (existing.type === "directory") {
+          this.ui.appendTerminalLine("nano: " + target + ": Is a directory");
+          return;
+        }
+        if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+          this.ui.appendTerminalLine("nano: cannot open '" + target + "': Permission denied");
+          return;
+        }
+      } else {
+        const parentDir = path.slice(0, path.lastIndexOf("/")) || "/";
+        if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+          this.ui.appendTerminalLine("nano: cannot create file '" + target + "': Permission denied");
+          return;
+        }
+      }
+
       let content = this.fileSystem.read(path);
       if (content === null) {
         content = "";
@@ -1554,7 +1681,20 @@ export class TerminalApp {
         path,
         content,
         (savePath, newContent) => {
-          this.fileSystem.write(savePath, newContent);
+          const saveNode = this.fileSystem.resolve(savePath);
+          if (saveNode) {
+            if (!this.fileSystem.hasPermission(user, groups, savePath, "write")) {
+              this.ui.appendTerminalLine("nano: cannot write to '" + savePath + "': Permission denied");
+              return;
+            }
+          } else {
+            const parent = savePath.slice(0, savePath.lastIndexOf("/")) || "/";
+            if (!this.fileSystem.hasPermission(user, groups, parent, "write")) {
+              this.ui.appendTerminalLine("nano: cannot create '" + savePath + "': Permission denied");
+              return;
+            }
+          }
+          this.fileSystem.write(savePath, newContent, user, groups[0] || "users");
           this.loggingSystem?.logFileAccess(savePath, "modified", "/bin/nano");
           if (this.zenmapApp && (savePath.includes("zenmap") || savePath.includes("savedata.ini") || savePath.includes("hosts.ini"))) {
             this.zenmapApp.reloadFromDisk();
@@ -1595,13 +1735,24 @@ export class TerminalApp {
       let linesToSearch = [];
       if (filePath) {
         const resolved = this.resolvePath(filePath);
-        const content = this.fileSystem.read(resolved);
-        if (content === null) {
+        const node = this.fileSystem.resolve(resolved);
+        if (!node) {
           this.ui.appendTerminalLine("grep: " + filePath + ": No such file or directory");
           return;
         }
+        if (node.type === "directory") {
+          this.ui.appendTerminalLine("grep: " + filePath + ": Is a directory");
+          return;
+        }
+        const user = this.getActiveUser();
+        const groups = this.getActiveGroups();
+        if (!this.fileSystem.hasPermission(user, groups, resolved, "read")) {
+          this.ui.appendTerminalLine("grep: " + filePath + ": Permission denied");
+          return;
+        }
+        const content = this.fileSystem.read(resolved);
         this.loggingSystem?.logFileAccess(resolved, "opened", "/bin/grep");
-        linesToSearch = content.split("\n");
+        linesToSearch = (content || "").split("\n");
       } else if (stdin && Array.isArray(stdin)) {
         linesToSearch = stdin;
       } else {
@@ -1638,7 +1789,22 @@ export class TerminalApp {
         return;
       }
       const path = this.resolvePath(target);
-      this.fileSystem.touch(path);
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      const existing = this.fileSystem.resolve(path);
+      if (existing) {
+        if (!this.fileSystem.hasPermission(user, groups, path, "write")) {
+          this.ui.appendTerminalLine("touch: cannot touch '" + target + "': Permission denied");
+          return;
+        }
+      } else {
+        const parentDir = path.slice(0, path.lastIndexOf("/")) || "/";
+        if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+          this.ui.appendTerminalLine("touch: cannot touch '" + target + "': Permission denied");
+          return;
+        }
+      }
+      this.fileSystem.touch(path, user, groups[0] || "users");
       this.loggingSystem?.logFileAccess(path, "modified", "/bin/touch");
       return;
     }
@@ -1650,9 +1816,10 @@ export class TerminalApp {
       }
       const mode = args[0];
       const path = this.resolvePath(args[1]);
-      const ok = this.fileSystem.chmod(path, mode);
-      if (!ok) {
-        this.ui.appendTerminalLine("chmod: cannot access '" + args[1] + "': No such file or directory");
+      const user = this.getActiveUser();
+      const res = this.fileSystem.chmod(path, mode, user);
+      if (!res || !res.success) {
+        this.ui.appendTerminalLine("chmod: " + (res?.error || "cannot access '" + args[1] + "'"));
         return;
       }
       this.loggingSystem?.logFileAccess(path, "modified", "/bin/chmod");
@@ -1684,7 +1851,14 @@ export class TerminalApp {
         return;
       }
       const path = this.resolvePath(target);
-      this.fileSystem.mkdir(path);
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      const parentDir = path.slice(0, path.lastIndexOf("/")) || "/";
+      if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+        this.ui.appendTerminalLine("mkdir: cannot create directory '" + target + "': Permission denied");
+        return;
+      }
+      this.fileSystem.mkdir(path, user, groups[0] || "users", "755");
       this.loggingSystem?.logFileAccess(path, "modified", "/bin/mkdir");
       return;
     }
@@ -1741,22 +1915,21 @@ export class TerminalApp {
     }
 
     if (primary === "id") {
-      const currentSession = this.loggingSystem?.getCurrentSession();
-      const user = currentSession?.user || this.getActiveUser() || "admin";
-      const isAdmin = user === "admin" || user === "root";
-      const uid = isAdmin ? 1000 : 1001;
-      const gid = isAdmin ? 1000 : 100;
-      const groupName = isAdmin ? "admin" : "users";
-      const groupsStr = isAdmin
-        ? "1000(admin),4(adm),27(sudo),10(wheel)"
-        : "100(users)";
+      const user = this.getActiveUser();
+      const isAdmin = user === "admin" || user === "root" || (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
+      const uid = user === "root" ? 0 : (isAdmin ? 1000 : 1001);
+      const gid = user === "root" ? 0 : (isAdmin ? 1000 : 100);
+      const groupName = user === "root" ? "root" : (isAdmin ? "admin" : "users");
+      const groupsStr = user === "root"
+        ? "0(root)"
+        : (isAdmin ? "1000(admin),4(adm),27(sudo),10(wheel)" : `100(users),1001(${user})`);
 
       if (args.includes("-u")) {
         this.ui.appendTerminalLine(args.includes("-n") ? user : String(uid));
       } else if (args.includes("-g")) {
         this.ui.appendTerminalLine(args.includes("-n") ? groupName : String(gid));
       } else if (args.includes("-G")) {
-        this.ui.appendTerminalLine(isAdmin ? "1000 4 27 10" : "100");
+        this.ui.appendTerminalLine(user === "root" ? "0" : (isAdmin ? "1000 4 27 10" : "100 1001"));
       } else {
         this.ui.appendTerminalLine(`uid=${uid}(${user}) gid=${gid}(${groupName}) groups=${groupsStr}`);
       }
@@ -1764,10 +1937,9 @@ export class TerminalApp {
     }
 
     if (primary === "groups") {
-      const currentSession = this.loggingSystem?.getCurrentSession();
-      const user = currentSession?.user || this.getActiveUser() || "admin";
-      const isAdmin = user === "admin" || user === "root";
-      this.ui.appendTerminalLine(isAdmin ? `${user} : admin adm sudo wheel` : `${user} : users`);
+      const user = this.getActiveUser();
+      const isAdmin = user === "admin" || user === "root" || (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
+      this.ui.appendTerminalLine(user === "root" ? "root : root" : (isAdmin ? `${user} : admin adm sudo wheel` : `${user} : users ${user}`));
       return;
     }
 
@@ -1778,6 +1950,21 @@ export class TerminalApp {
         return;
       }
       const path = this.resolvePath(target);
+      const node = this.fileSystem.resolve(path);
+      if (!node) {
+        this.ui.appendTerminalLine("python3: can't open file '" + target + "': [Errno 2] No such file or directory");
+        return;
+      }
+      if (node.type === "directory") {
+        this.ui.appendTerminalLine("python3: can't open file '" + target + "': [Errno 21] Is a directory");
+        return;
+      }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+        this.ui.appendTerminalLine("python3: can't open file '" + target + "': [Errno 13] Permission denied");
+        return;
+      }
       const result = this.fakePython.run(path);
       for (const line of result?.output || []) this.ui.appendTerminalLine(line);
       if (result?.error) this.ui.appendTerminalLine("PythonError: " + result.error);
@@ -1842,8 +2029,40 @@ export class TerminalApp {
         this.ui.appendTerminalLine("Usage: cp <source> <destination>");
         return;
       }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
       const source = this.resolvePath(args[0]);
       const destination = this.resolvePath(args[1]);
+
+      const srcNode = this.fileSystem.resolve(source);
+      if (!srcNode) {
+        this.ui.appendTerminalLine("cp: cannot stat '" + args[0] + "': No such file or directory");
+        return;
+      }
+      if (!this.fileSystem.hasPermission(user, groups, source, "read")) {
+        this.ui.appendTerminalLine("cp: cannot open '" + args[0] + "' for reading: Permission denied");
+        return;
+      }
+
+      const destNode = this.fileSystem.resolve(destination);
+      let targetWriteDir;
+      if (destNode && destNode.type === "directory") {
+        targetWriteDir = destination;
+      } else if (destNode) {
+        if (!this.fileSystem.hasPermission(user, groups, destination, "write")) {
+          this.ui.appendTerminalLine("cp: cannot create regular file '" + args[1] + "': Permission denied");
+          return;
+        }
+        targetWriteDir = null;
+      } else {
+        targetWriteDir = destination.slice(0, destination.lastIndexOf("/")) || "/";
+      }
+
+      if (targetWriteDir && !this.fileSystem.hasPermission(user, groups, targetWriteDir, "write")) {
+        this.ui.appendTerminalLine("cp: cannot create regular file '" + args[1] + "': Permission denied");
+        return;
+      }
+
       if (!this.fileSystem.copy(source, destination)) {
         this.ui.appendTerminalLine("cp: cannot copy '" + args[0] + "' to '" + args[1] + "'");
         return;
@@ -1867,8 +2086,42 @@ export class TerminalApp {
         this.ui.appendTerminalLine("Usage: mv <source> <destination>");
         return;
       }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
       const source = this.resolvePath(args[0]);
       const destination = this.resolvePath(args[1]);
+
+      const srcNode = this.fileSystem.resolve(source);
+      if (!srcNode) {
+        this.ui.appendTerminalLine("mv: cannot stat '" + args[0] + "': No such file or directory");
+        return;
+      }
+
+      const srcParent = source.slice(0, source.lastIndexOf("/")) || "/";
+      if (!this.fileSystem.hasPermission(user, groups, srcParent, "write")) {
+        this.ui.appendTerminalLine("mv: cannot move '" + args[0] + "': Permission denied");
+        return;
+      }
+
+      const destNode = this.fileSystem.resolve(destination);
+      let targetWriteDir;
+      if (destNode && destNode.type === "directory") {
+        targetWriteDir = destination;
+      } else if (destNode) {
+        if (!this.fileSystem.hasPermission(user, groups, destination, "write")) {
+          this.ui.appendTerminalLine("mv: cannot move to '" + args[1] + "': Permission denied");
+          return;
+        }
+        targetWriteDir = null;
+      } else {
+        targetWriteDir = destination.slice(0, destination.lastIndexOf("/")) || "/";
+      }
+
+      if (targetWriteDir && !this.fileSystem.hasPermission(user, groups, targetWriteDir, "write")) {
+        this.ui.appendTerminalLine("mv: cannot move to '" + args[1] + "': Permission denied");
+        return;
+      }
+
       if (!this.fileSystem.move(source, destination)) {
         this.ui.appendTerminalLine("Move failed");
         return;
@@ -1901,6 +2154,9 @@ export class TerminalApp {
         return;
       }
 
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+
       const programIdToProcessName = {
         "codepad-plus": "codepad+",
         "clawder-python": "clawder-python",
@@ -1925,6 +2181,10 @@ export class TerminalApp {
             const dirNode = this.fileSystem.resolve(resolvedDir);
             if (!dirNode || dirNode.type !== "directory") {
               this.ui.appendTerminalLine("rm: cannot access '" + operand + "': No such directory");
+              continue;
+            }
+            if (!this.fileSystem.hasPermission(user, groups, resolvedDir, "write")) {
+              this.ui.appendTerminalLine("rm: cannot remove in '" + operand + "': Permission denied");
               continue;
             }
             const entries = this.fileSystem.list(resolvedDir) || [];
@@ -1981,6 +2241,12 @@ export class TerminalApp {
             }
             if (node.type === "directory" && !recursive) {
               this.ui.appendTerminalLine("rm: cannot remove '" + operand + "': Is a directory");
+              continue;
+            }
+
+            const parentDir = path.slice(0, path.lastIndexOf("/")) || "/";
+            if (!this.fileSystem.hasPermission(user, groups, parentDir, "write")) {
+              this.ui.appendTerminalLine("rm: cannot remove '" + operand + "': Permission denied");
               continue;
             }
 
@@ -2098,6 +2364,9 @@ export class TerminalApp {
         return;
       }
 
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+
       if (targetNode.type !== "directory" || directoryOnly) {
         const singleEntry = {
           name: nonFlags[0] || target.split("/").pop() || target,
@@ -2114,6 +2383,11 @@ export class TerminalApp {
         } else {
           this.ui.appendTerminalLine(this.formatShortLsEntry(singleEntry, classify));
         }
+        return;
+      }
+
+      if (!this.fileSystem.hasPermission(user, groups, target, "read")) {
+        this.ui.appendTerminalLine("ls: cannot open directory '" + (nonFlags[0] || targetRaw) + "': Permission denied");
         return;
       }
 
@@ -2194,19 +2468,27 @@ export class TerminalApp {
     }
 
     if (primary === "cd") {
-      const currentSession = this.loggingSystem?.getCurrentSession();
-      const defaultDir = currentSession?.user ? "/home/" + currentSession.user : "/home";
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      const defaultDir = "/home/" + user;
       const target = args[0] || defaultDir;
       const path = this.resolvePath(target);
-      const entries = this.fileSystem.list(path);
-      if (!entries) {
-        this.ui.appendTerminalLine("Directory not found: " + path);
+      const node = this.fileSystem.resolve(path);
+      if (!node) {
+        this.ui.appendTerminalLine("bash: cd: " + target + ": No such file or directory");
+        return;
+      }
+      if (node.type !== "directory") {
+        this.ui.appendTerminalLine("bash: cd: " + target + ": Not a directory");
+        return;
+      }
+      if (!this.fileSystem.hasPermission(user, groups, path, "execute")) {
+        this.ui.appendTerminalLine("bash: cd: " + target + ": Permission denied");
         return;
       }
       this.currentPath = path;
       this.updatePromptPrefix();
       if (this.filesApp) this.filesApp.setPath(path, true);
-      this.ui.appendTerminalLine(this.currentPath);
       return;
     }
 
@@ -2217,9 +2499,24 @@ export class TerminalApp {
         return;
       }
       const path = this.resolvePath(target);
+      const node = this.fileSystem.resolve(path);
+      if (!node) {
+        this.ui.appendTerminalLine(primary + ": " + target + ": No such file or directory");
+        return;
+      }
+      if (node.type === "directory") {
+        this.ui.appendTerminalLine(primary + ": " + target + ": Is a directory");
+        return;
+      }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+        this.ui.appendTerminalLine(primary + ": " + target + ": Permission denied");
+        return;
+      }
       const content = this.fileSystem.read(path);
       if (content === null) {
-        this.ui.appendTerminalLine("File not found: " + path);
+        this.ui.appendTerminalLine(primary + ": " + target + ": Permission denied");
         return;
       }
       this.loggingSystem?.logFileAccess(path, "opened", primary === "open" ? "./programs/CodePad+.bin" : "/bin/cat");
@@ -2227,7 +2524,6 @@ export class TerminalApp {
         this.ui.appendTerminalLine(content);
       }
       if (primary === "open") {
-        const node = this.fileSystem.resolve(path);
         if (node?.format === "audio" && this.launchProgram) {
           this.launchProgram("music-player");
           this.filesApp.open(path);
@@ -2235,8 +2531,204 @@ export class TerminalApp {
         } else if (this.codePadApp && this.codePadApp.open(path)) {
           if (this.launchProgram) this.launchProgram("codepad-plus");
           this.windowManager.focus("codepad");
+        } else {
+          this.filesApp.open(path);
         }
-        else this.filesApp.open(path);
+      }
+      return;
+    }
+
+    if (primary === "more" || primary === "less") {
+      const target = args[0];
+      if (!target) {
+        this.ui.appendTerminalLine("Usage: " + primary + " <file>");
+        return;
+      }
+      const path = this.resolvePath(target);
+      const node = this.fileSystem.resolve(path);
+      if (!node) {
+        this.ui.appendTerminalLine(primary + ": " + target + ": No such file or directory");
+        return;
+      }
+      if (node.type === "directory") {
+        this.ui.appendTerminalLine(primary + ": " + target + ": Is a directory");
+        return;
+      }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+        this.ui.appendTerminalLine(primary + ": " + target + ": Permission denied");
+        return;
+      }
+      const content = this.fileSystem.read(path);
+      if (content !== null && content.length > 0) {
+        this.ui.appendTerminalLine(content);
+      }
+      this.loggingSystem?.logFileAccess(path, "opened", "/bin/" + primary);
+      return;
+    }
+
+    if (primary === "head") {
+      let lineCount = 10;
+      let target = null;
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === "-n" && args[i + 1]) {
+          lineCount = parseInt(args[i + 1], 10) || 10;
+          i++;
+        } else if (args[i].startsWith("-n") && args[i].length > 2) {
+          lineCount = parseInt(args[i].slice(2), 10) || 10;
+        } else if (!args[i].startsWith("-")) {
+          target = args[i];
+        }
+      }
+      let lines = [];
+      if (target) {
+        const path = this.resolvePath(target);
+        const node = this.fileSystem.resolve(path);
+        if (!node) {
+          this.ui.appendTerminalLine("head: cannot open '" + target + "' for reading: No such file or directory");
+          return;
+        }
+        if (node.type === "directory") {
+          this.ui.appendTerminalLine("head: error reading '" + target + "': Is a directory");
+          return;
+        }
+        const user = this.getActiveUser();
+        const groups = this.getActiveGroups();
+        if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+          this.ui.appendTerminalLine("head: cannot open '" + target + "' for reading: Permission denied");
+          return;
+        }
+        const content = this.fileSystem.read(path);
+        lines = (content || "").split("\n");
+        this.loggingSystem?.logFileAccess(path, "opened", "/bin/head");
+      } else if (stdin && Array.isArray(stdin)) {
+        lines = stdin;
+      } else {
+        this.ui.appendTerminalLine("Usage: head [-n lines] <file>");
+        return;
+      }
+      const result = lines.slice(0, lineCount);
+      for (const line of result) {
+        this.ui.appendTerminalLine(line);
+      }
+      return;
+    }
+
+    if (primary === "tail") {
+      let lineCount = 10;
+      let target = null;
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === "-n" && args[i + 1]) {
+          lineCount = parseInt(args[i + 1], 10) || 10;
+          i++;
+        } else if (args[i].startsWith("-n") && args[i].length > 2) {
+          lineCount = parseInt(args[i].slice(2), 10) || 10;
+        } else if (!args[i].startsWith("-")) {
+          target = args[i];
+        }
+      }
+      let lines = [];
+      if (target) {
+        const path = this.resolvePath(target);
+        const node = this.fileSystem.resolve(path);
+        if (!node) {
+          this.ui.appendTerminalLine("tail: cannot open '" + target + "' for reading: No such file or directory");
+          return;
+        }
+        if (node.type === "directory") {
+          this.ui.appendTerminalLine("tail: error reading '" + target + "': Is a directory");
+          return;
+        }
+        const user = this.getActiveUser();
+        const groups = this.getActiveGroups();
+        if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+          this.ui.appendTerminalLine("tail: cannot open '" + target + "' for reading: Permission denied");
+          return;
+        }
+        const content = this.fileSystem.read(path);
+        lines = (content || "").split("\n");
+        this.loggingSystem?.logFileAccess(path, "opened", "/bin/tail");
+      } else if (stdin && Array.isArray(stdin)) {
+        lines = stdin;
+      } else {
+        this.ui.appendTerminalLine("Usage: tail [-n lines] <file>");
+        return;
+      }
+      const result = lines.slice(-lineCount);
+      for (const line of result) {
+        this.ui.appendTerminalLine(line);
+      }
+      return;
+    }
+
+    if (primary === "sed") {
+      let inPlace = false;
+      let script = null;
+      let target = null;
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === "-i") {
+          inPlace = true;
+        } else if (!script) {
+          script = args[i];
+        } else if (!target) {
+          target = args[i];
+        }
+      }
+      if (!script) {
+        this.ui.appendTerminalLine("Usage: sed [-i] 's/find/replace/g' [file]");
+        return;
+      }
+      if ((script.startsWith("'") && script.endsWith("'")) || (script.startsWith('"') && script.endsWith('"'))) {
+        script = script.slice(1, -1);
+      }
+      const sMatch = script.match(/^s\/([^/]*)\/([^/]*)\/([gi]*)$/);
+      if (!sMatch) {
+        this.ui.appendTerminalLine("sed: -e expression #1, char 1: unknown command");
+        return;
+      }
+      const [, findStr, replaceStr, sedFlags] = sMatch;
+      const regex = new RegExp(findStr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), sedFlags);
+
+      let text = "";
+      let path = null;
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      if (target) {
+        path = this.resolvePath(target);
+        const node = this.fileSystem.resolve(path);
+        if (!node) {
+          this.ui.appendTerminalLine("sed: can't read " + target + ": No such file or directory");
+          return;
+        }
+        if (node.type === "directory") {
+          this.ui.appendTerminalLine("sed: couldn't edit " + target + ": Is a directory");
+          return;
+        }
+        if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+          this.ui.appendTerminalLine("sed: couldn't open file " + target + ": Permission denied");
+          return;
+        }
+        if (inPlace && !this.fileSystem.hasPermission(user, groups, path, "write")) {
+          this.ui.appendTerminalLine("sed: couldn't open temporary file: Permission denied");
+          return;
+        }
+        text = this.fileSystem.read(path) || "";
+      } else if (stdin && Array.isArray(stdin)) {
+        text = stdin.join("\n");
+      } else {
+        this.ui.appendTerminalLine("Usage: sed [-i] 's/find/replace/g' [file]");
+        return;
+      }
+
+      const replaced = text.split("\n").map((line) => line.replace(regex, replaceStr)).join("\n");
+      if (inPlace && path) {
+        this.fileSystem.write(path, replaced, user, groups[0] || "users");
+        this.loggingSystem?.logFileAccess(path, "modified", "/bin/sed");
+      } else {
+        for (const line of replaced.split("\n")) {
+          this.ui.appendTerminalLine(line);
+        }
       }
       return;
     }
