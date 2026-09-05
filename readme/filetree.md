@@ -9,12 +9,14 @@
 ```
 DemicubeOS/
 ├── content/                    # Game content (systems, missions, profiles, programs)
-├── src/                        # Source code for the game engine
-├── docs/                       # Documentation files
+├── src/                        # Source code for the game engine & UI
+├── docs/                       # Documentation files and packaging plans
 ├── readme/                     # Developer guides (this folder)
-├── scripts/                    # Build and deployment scripts
-├── music/                      # Audio files for game
-├── index.html                  # Main entry point for the application
+├── scripts/                    # Build and deployment scripts (Vercel / Cloud Run)
+├── music/                      # Audio files for in-game music player
+├── index.html                  # Main entry point for the web application
+├── server.js                   # Node.js / Express static & SPA server (Port 3000)
+├── metadata.json               # Platform application metadata and configuration
 ├── bsod_idea.txt              # Brainstorm/reference files
 ├── on_off_idea.txt            # Brainstorm/reference files
 ├── ui_idea*.txt               # UI brainstorm/reference files
@@ -145,75 +147,80 @@ This folder contains the game engine implementation. Most development happens he
 ### Structure
 ```
 src/
-├── main.js                  # Main entry point, initializes all systems
+├── main.js                  # Main entry point, orchestrates OS systems and state
 ├── apps/                    # Individual application implementations
-│   ├── terminal.js         # Terminal emulator (⭐ most complex)
-│   ├── files.js            # File browser
-│   ├── codepad.js          # Text/code editor
-│   ├── clawder-python.js   # AI assistant
-│   ├── music-player.js     # Music player
-│   ├── settings.js         # Settings app
-│   └── system.js           # Task manager / system monitor
-├── core/                    # Core game engine systems
-│   ├── boot-sequence.js    # Boot/shutdown sequences
-│   ├── os-sequence.js      # OS-specific sequences (dynamic per OS name)
-│   ├── window-manager.js   # Window management and focus
-│   ├── file-system.js      # Virtual file system implementation
-│   ├── terminal.js         # Terminal execution engine
-│   ├── login-manager.js    # User authentication
-│   ├── resource-manager.js # RAM/process management
-│   ├── system-loader.js    # Loads system definition from JSON
-│   ├── input-dispatcher.js # Keyboard/input handling
-│   └── fake-python.js      # Python command simulation
+│   ├── terminal.js         # Terminal emulator & command processor (⭐ most complex)
+│   ├── files.js            # File browser and directory explorer
+│   ├── codepad.js          # Text and script editor (CodePad+)
+│   ├── clawder-python.js   # AI assistant interface
+│   ├── music-player.js     # Audio & synth player
+│   ├── settings.js         # System settings configuration app
+│   ├── system.js           # Task manager & resource monitor
+│   ├── zenmap.js           # GUI network mapper & port scanner
+│   └── vpnguard.js         # VPN tunnel & security manager
+├── core/                    # Core operating system engine
+│   ├── boot-sequence.js    # Standard boot/shutdown sequence orchestration
+│   ├── os-sequence.js      # Dynamic OS-specific boot, shutdown, BSOD generators
+│   ├── window-manager.js   # Window hierarchy, dragging, z-index, and focus
+│   ├── file-system.js      # In-memory virtual Unix file system & permissions
+│   ├── login-manager.js    # User authentication & session persistence
+│   ├── resource-manager.js # RAM calculation, process allocation, OOM crash
+│   ├── system-loader.js    # JSON system & filesystem loader
+│   ├── input-dispatcher.js # Global keyboard shortcuts & dispatch
+│   ├── fake-python.js      # Emulated Python script runner
+│   ├── logging-system.js   # Multi-hop SSH chain, audit trails, and daemon
+│   └── network-state.js    # Network routing table & interface states
+├── media/                   # Multimedia assets
+│   └── demicubeOS.mp4      # Cinematic startup splash video
 ├── config/                  # Configuration files
-│   └── game-profile.js     # Game-wide settings
+│   └── game-profile.js     # Game-wide settings and prompt profiles
 ├── styles/                  # CSS styling
-│   ├── base.css            # Main styles
+│   ├── base.css            # Base styles, 3D cube animations, splash, main menu
 │   └── themes/
-│       └── kali.css        # Kali theme (dark, cyan, etc.)
-└── ui/                      # UI generation
-    └── desktop-shell.js    # Creates HTML UI structure
+│       └── kali.css        # Kali cyber theme (dark, cyan, neon accents)
+└── ui/                      # UI rendering and graphical modules
+    ├── desktop-shell.js    # Shell HTML template, screen manager, event wiring
+    └── menu-canvas.js      # 3D isometric perspective cyber grid & particle engine
 ```
 
 ### Key Modules Explained
 
-#### **src/core/os-sequence.js** ⭐ IMPORTANT
-Generates dynamic boot, shutdown, and crash sequences based on the OS name.
-
-**Key Functions**:
-- `simulateOSSequence(osName, state, print)` - Main function
-  - `osName`: The operating system name (e.g., "DemicubeOS", "KaliLinux")
-  - `state`: "on" (boot), "off" (shutdown), or "crash" (BSOD)
-  - `print`: Callback to display text to terminal
-
-**How it works**:
-- Every sequence is generated using the OS name
-- This ensures unique boot/shutdown/crash text for each OS
-- BSOD holds for 8 seconds before allowing reboot
-
-#### **src/core/system-loader.js**
-Loads system definitions from `content/Systems/[IP]/`.
-
-**FALLBACK_SYSTEM**: Used if system.json can't be loaded (for development)
+#### **src/ui/menu-canvas.js** & **src/ui/desktop-shell.js** ⭐ NEW
+Implements the multi-stage visual startup pipeline:
+1. **Video Splash Screen (`src/media/demicubeOS.mp4`)**:
+   - Autoplays the startup MP4 video container seamlessly on application launch.
+   - Built-in frame detection (`playing` / `timeupdate` > 0.05s) smoothly hides the procedural fallback layer.
+   - Graceful fallback: If the video is empty, missing, or blocked by browser policies, a high-tech CSS 3D rotating cube animation plays automatically for ~3.5 seconds.
+   - Interactive skip: Keyboard press (<kbd>Enter</kbd> / <kbd>Space</kbd> / any key), mouse click anywhere, or "SKIP INTRO ❯" button instantly skips to the Main Menu.
+2. **Looping 3D Cyber Main Menu**:
+   - High-performance HTML5 Canvas rendering isometric perspective cyber grid, horizon cyan glow, floating cyber particles, and rotating wireframe Demicube.
+   - Modular navigation panel featuring **Log In** as the active entry point, with locked Campaign, Missions, Netlink, and Calibration buttons.
+   - Web Audio API synthesizer generates retro sci-fi beeps and chirp effects on button hover and activation.
+   - "◂ Return to Main Menu" button on the login screen allows jumping back to the 3D menu at any time.
 
 #### **src/apps/terminal.js** ⭐ CRITICAL
-The terminal application handles command execution.
+The terminal application handles interactive command execution, argument parsing, manual generation (`help <cmd>`), and process management.
 
-**Key Commands** (documented in terminal.js):
-- `ls` - List directory
-- `cd` - Change directory
-- `pwd` - Print working directory
-- `cat` - Display file contents
-- `echo` - Print text
-- `mkdir` - Make directory
-- `touch` - Create file
-- And more...
+**Session Control: `logout` vs `exit`**:
+- **`exit`**: Closes the currently active terminal window (`kill <pid>`), or if inside an active SSH hop, drops back to the previous hop in the connection chain (`Connection to <host> closed.`).
+- **`logout`**: Formally logs out of the current operating system session.
+  - In an SSH session: terminates the remote session and closes the connection.
+  - On the local system: ends the authenticated session (`loginManager.logout()`), stops user daemons, closes all desktop application windows, and brings the player back to that system's **Sign In screen** (`ui.showLoginScreen()`).
 
-**Adding New Commands**:
-1. Look for the command handler switch statement
-2. Add new case: `case 'yourcommand':`
-3. Implement command logic
-4. Return appropriate output
+**Key Commands**:
+- `help [cmd]` - Interactive manual viewer with detailed synopsis and flags
+- `logout` - Formally log out of the current system session and return to login screen
+- `exit` - Close the active terminal window or disconnect current SSH hop
+- `ls`, `ll` - Directory listing with Unix permissions (`drwxr-xr-x`)
+- `cd`, `pwd`, `cat`, `mkdir`, `touch`, `cp`, `mv`, `rm` - Unix filesystem commands
+- `ssh [user]@[host]` - Remote system access with multi-hop chain tracking
+- `ps`, `kill` - Process listing and process termination (PID 1 kill triggers BSOD)
+- `session`, `sessions`, `disconnect` - SSH chain inspection and fast disconnection
+
+#### **src/core/os-sequence.js** ⭐ IMPORTANT
+Generates dynamic boot, shutdown, and crash sequences based on the OS name.
+- Every sequence is generated using the OS name (`simulateOSSequence(osName, state, print)`).
+- BSOD holds for calibrated duration before initiating memory dump and reboot.
 
 #### **src/core/file-system.js**
 Virtual file system implementation using in-memory JSON structure.
@@ -494,6 +501,14 @@ A: All files are in-memory, stored in the system definition (filesystem.json). N
 
 ---
 
-**Last Updated**: September 3, 2026  
+**Q: Why might `src/media/demicubeOS.mp4` show the fallback animation instead of playing?**
+A: If `src/media/demicubeOS.mp4` is created as an empty text file or has 0-2 bytes, the browser's `<video>` decoder triggers a format error. DemicubeOS detects this gracefully and plays the procedural 3D rotating cube cyber intro fallback. To play your custom video, upload or replace `src/media/demicubeOS.mp4` with a real binary `.mp4` video (H.264/AAC recommended).
+
+**Q: What is the difference between `logout` and `exit` in the terminal?**
+A: `exit` closes the active terminal window (`kill <pid>`) or disconnects from the current SSH remote hop. `logout` terminates the authenticated operating system session; on the local system, it resets active desktop windows and returns the player to that system's login screen.
+
+---
+
+**Last Updated**: September 5, 2026  
 **Maintainer**: DemicubeOS Team  
 **Questions?**: Check projectgoals.md for roadmap and priorities

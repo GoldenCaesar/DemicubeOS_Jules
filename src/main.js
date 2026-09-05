@@ -91,9 +91,7 @@ async function main() {
     isCrashing = false;
   };
 
-  await boot.run(ui);
-  ui.showDesktop();
-
+  // Window and subsystem setup (boot sequence deferred until Main Menu "LOG IN")
   const windowIds = runtimeProfile.defaultWindows.map((win) => win.id);
 
   const windowManager = new WindowManager(windowIds, (windowId) => {
@@ -365,7 +363,7 @@ async function main() {
   terminal.processes = new Map([[1, "system"]]);
   resourceManager.reset();
   windowManager.reset([]);
-  ui.onLogout(() => {
+  const handleSystemLogout = () => {
     loggingSystem.logAuth("logout", { user: terminal.profile.promptUser, hostname: systemDefinition.hostname });
     loggingSystem.stopBackgroundDaemon();
     loginManager.logout();
@@ -381,7 +379,9 @@ async function main() {
     windowManager.reset([]);
     ui.setKnownLogins?.(loginManager.getKnownLogins());
     ui.showLoginScreen();
-  });
+  };
+  ui.onLogout(handleSystemLogout);
+  terminal.onLogout(handleSystemLogout);
   const logIn = (username, password) => {
     if (!loginManager.authenticate(username, password)) {
       ui.showLoginError("Authentication failed");
@@ -408,8 +408,30 @@ async function main() {
   loginManager.setFileSystem(fileSystem);
   ui.setKnownLogins?.(loginManager.getKnownLogins());
   input.setSessionActive(false);
-  ui.showLoginScreen();
-  ui.appendTerminalLine("Desktop ready. Alt+A and Alt+D cycle focus.");
+
+  const startBootUpSequence = async () => {
+    ui.showBootScreen();
+    await boot.run(ui);
+    ui.showDesktop();
+    refreshProgramCatalog();
+    input.setSessionActive(false);
+    loginManager.logout();
+    ui.setKnownLogins?.(loginManager.getKnownLogins());
+    ui.showLoginScreen();
+    ui.appendTerminalLine("Desktop ready. Alt+A and Alt+D cycle focus.");
+  };
+
+  ui.onMainMenuLogin(async () => {
+    await startBootUpSequence();
+  });
+
+  ui.onReturnToMainMenu(() => {
+    input.setSessionActive(false);
+    ui.showMainMenu();
+  });
+
+  // Start with splash screen which transitions to looping animated main menu
+  ui.showSplashScreen();
 }
 
 main();

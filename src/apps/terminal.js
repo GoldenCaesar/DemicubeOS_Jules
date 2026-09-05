@@ -12,6 +12,7 @@ export class TerminalApp {
     this.fakePython = fakePython;
     this.resourceManager = resourceManager;
     this.loggingSystem = loggingSystem;
+    this.logoutHandler = null;
     this.currentPath = "/home/admin";
     this.waitingForPassword = null;
     this.running = true;
@@ -640,18 +641,30 @@ export class TerminalApp {
       ],
       exit: [
         "NAME",
-        "  exit - disconnect SSH session or close terminal",
+        "  exit - close active terminal window or disconnect SSH session",
         "",
         "SYNOPSIS",
         "  exit",
+        "",
+        "DESCRIPTION",
+        "  If connected to a remote host via SSH, disconnects and returns to the previous hop.",
+        "  If on local shell, closes the active terminal window without logging out of the OS session.",
+        "",
+        "EXAMPLES",
+        "  exit"
+      ],
+      logout: [
+        "NAME",
+        "  logout - log out of the current system session",
+        "",
+        "SYNOPSIS",
         "  logout",
         "",
         "DESCRIPTION",
-        "  If connected to a remote host via SSH, disconnects and returns to local shell.",
-        "  If on local shell, closes the active terminal session or logs out.",
+        "  If connected to a remote host via SSH, terminates the remote session and closes the connection.",
+        "  If on the local system, ends the active user session and returns to that system's login screen.",
         "",
         "EXAMPLES",
-        "  exit",
         "  logout"
       ],
       reboot: [
@@ -1601,7 +1614,7 @@ export class TerminalApp {
       return;
     }
 
-    if (primary === "exit" || primary === "logout") {
+    if (primary === "exit") {
       if (this.loggingSystem?.isInSSHSession()) {
         const popped = this.loggingSystem.disconnectSSH();
         const current = this.loggingSystem.getCurrentSession();
@@ -1615,6 +1628,27 @@ export class TerminalApp {
       const activeWindow = this.windowManager.getActiveWindowId();
       const focusedPid = [...this.processWindows.entries()].find(([, windowId]) => windowId === activeWindow)?.[0];
       this.submitCommand(focusedPid ? "kill " + focusedPid : "kill 1");
+      return;
+    }
+
+    if (primary === "logout") {
+      if (this.loggingSystem?.isInSSHSession()) {
+        const popped = this.loggingSystem.disconnectSSH();
+        const current = this.loggingSystem.getCurrentSession();
+        this.fileSystem = current.fileSystem;
+        this.currentPath = "/home/" + current.user;
+        this.updatePromptPrefix();
+        this.ui.setPrompt(this.promptPrefix, this.buffer);
+        this.ui.appendTerminalLine("Connection to " + popped.hostname + " closed.");
+        return;
+      }
+      const hostname = this.profile?.promptHost || "demicube-test";
+      this.ui.appendTerminalLine(`Logging out of ${hostname}...`);
+      if (this.logoutHandler) {
+        this.logoutHandler();
+      } else {
+        this.ui.showLoginScreen();
+      }
       return;
     }
 
@@ -2989,11 +3023,14 @@ export class TerminalApp {
     };
   }
 
+  onLogout(handler) {
+    this.logoutHandler = handler;
+  }
+
   showCommandHelp(command) {
     const aliasMap = {
       python: "python3",
       sessions: "session",
-      logout: "exit",
       disconnect: "exit",
       music: "music-player",
       codepad: "codepad+",

@@ -1,7 +1,122 @@
+import { createMenuCanvas } from "./menu-canvas.js";
+
 export function createDesktopShell(rootElement, profile) {
   rootElement.innerHTML = [
     "<main class=\"shell\">",
-    "  <section id=\"boot-screen\" class=\"boot-screen\">",
+    "  <section id=\"splash-screen\" class=\"splash-screen hidden\" aria-label=\"Splash Screen\">",
+    "    <div class=\"splash-media-wrapper\">",
+    "      <video id=\"splash-video\" class=\"splash-video\" playsinline muted autoplay preload=\"auto\">",
+    "        <source src=\"/src/media/demicubeOS.mp4\" type=\"video/mp4\">",
+    "        <source src=\"./src/media/demicubeOS.mp4\" type=\"video/mp4\">",
+    "      </video>",
+    "      <div id=\"splash-fallback\" class=\"splash-fallback-overlay\">",
+    "        <div class=\"splash-brand-cube\">",
+    "          <div class=\"splash-cube-wireframe\">",
+    "            <div class=\"cube-face cube-front\"></div>",
+    "            <div class=\"cube-face cube-back\"></div>",
+    "            <div class=\"cube-face cube-right\"></div>",
+    "            <div class=\"cube-face cube-left\"></div>",
+    "            <div class=\"cube-face cube-top\"></div>",
+    "            <div class=\"cube-face cube-bottom\"></div>",
+    "          </div>",
+    "        </div>",
+    "        <h1 class=\"splash-title-text\">DEMICUBE</h1>",
+    "        <p class=\"splash-subtitle-text\">TACTICAL CYBERWARFARE SIMULATION</p>",
+    "        <div class=\"splash-progress-track\"><div class=\"splash-progress-fill\"></div></div>",
+    "      </div>",
+    "    </div>",
+    "    <div class=\"splash-bottom-bar\">",
+    "      <span class=\"splash-hint-text\">PRESS ANY KEY OR CLICK TO SKIP</span>",
+    "      <button type=\"button\" id=\"splash-skip-btn\" class=\"splash-skip-btn\">SKIP INTRO ❯</button>",
+    "    </div>",
+    "  </section>",
+    "  <section id=\"main-menu-screen\" class=\"main-menu-screen hidden\" aria-label=\"Main Menu\">",
+    "    <canvas id=\"main-menu-canvas\" class=\"main-menu-canvas\"></canvas>",
+    "    <div class=\"main-menu-vignette\"></div>",
+    "    <div class=\"main-menu-scanlines\"></div>",
+    "    <div class=\"main-menu-layout\">",
+    "      <header class=\"main-menu-topbar\">",
+    "        <div class=\"menu-sys-tag\"><span class=\"sys-dot\"></span> DEMICUBE SYSTEM TESTBED // v1.0.4</div>",
+    "        <div class=\"menu-sys-status\">KERNEL: READY · ARCH: X86_64</div>",
+    "      </header>",
+    "      <main class=\"main-menu-body\">",
+    "        <div class=\"main-menu-brand\">",
+    "          <div class=\"menu-brand-header\">",
+    "            <span class=\"menu-brand-badge\">MILITARY-GRADE TACTICAL CYBERSIM</span>",
+    "            <h1 class=\"menu-title\">DEMICUBE<span class=\"menu-title-accent\">OS</span></h1>",
+    "            <p class=\"menu-tagline\">Advanced virtual intrusion operating environment &amp; penetration testing system.</p>",
+    "          </div>",
+    "          <nav class=\"main-menu-nav\" aria-label=\"Main Menu Navigation\">",
+    "            <button type=\"button\" id=\"main-menu-login-btn\" class=\"menu-btn menu-btn-primary active-primary\">",
+    "              <span class=\"menu-btn-icon\">▶</span>",
+    "              <span class=\"menu-btn-content\">",
+    "                <span class=\"menu-btn-label\">LOG IN</span>",
+    "                <span class=\"menu-btn-sub\">Initialize boot sequence &amp; connect to test computer</span>",
+    "              </span>",
+    "              <span class=\"menu-btn-badge\">ONLINE</span>",
+    "            </button>",
+    "            <button type=\"button\" class=\"menu-btn menu-btn-disabled\" disabled title=\"Campaign mode locked\">",
+    "              <span class=\"menu-btn-icon\">🔒</span>",
+    "              <span class=\"menu-btn-content\">",
+    "                <span class=\"menu-btn-label\">CAMPAIGN</span>",
+    "                <span class=\"menu-btn-sub\">Story Mode — Operation Red Dawn</span>",
+    "              </span>",
+    "              <span class=\"menu-btn-badge locked\">LOCKED</span>",
+    "            </button>",
+    "            <button type=\"button\" class=\"menu-btn menu-btn-disabled\" disabled title=\"Missions mode locked\">",
+    "              <span class=\"menu-btn-icon\">🔒</span>",
+    "              <span class=\"menu-btn-content\">",
+    "                <span class=\"menu-btn-label\">MISSIONS</span>",
+    "                <span class=\"menu-btn-sub\">Tactical intrusion scenarios &amp; challenges</span>",
+    "              </span>",
+    "              <span class=\"menu-btn-badge locked\">LOCKED</span>",
+    "            </button>",
+    "            <button type=\"button\" class=\"menu-btn menu-btn-disabled\" disabled title=\"Multiplayer mode offline\">",
+    "              <span class=\"menu-btn-icon\">🔒</span>",
+    "              <span class=\"menu-btn-content\">",
+    "                <span class=\"menu-btn-label\">NETLINK</span>",
+    "                <span class=\"menu-btn-sub\">Multi-node collaborative terminal breach</span>",
+    "              </span>",
+    "              <span class=\"menu-btn-badge locked\">OFFLINE</span>",
+    "            </button>",
+    "            <button type=\"button\" class=\"menu-btn menu-btn-disabled\" disabled title=\"Options disabled for this build\">",
+    "              <span class=\"menu-btn-icon\">⚙</span>",
+    "              <span class=\"menu-btn-content\">",
+    "                <span class=\"menu-btn-label\">CALIBRATION</span>",
+    "                <span class=\"menu-btn-sub\">Simulation rendering &amp; audio settings</span>",
+    "              </span>",
+    "              <span class=\"menu-btn-badge locked\">DISABLED</span>",
+    "            </button>",
+    "          </nav>",
+    "        </div>",
+    "        <aside class=\"main-menu-telemetry\">",
+    "          <div class=\"telemetry-card\">",
+    "            <div class=\"telemetry-header\">",
+    "              <span class=\"telemetry-title\">TARGET NODE TELEMETRY</span>",
+    "              <span class=\"telemetry-status live\">CONNECTED</span>",
+    "            </div>",
+    "            <div class=\"telemetry-grid\">",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">HOST</span><span class=\"t-val\">demicube-test</span></div>",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">ROLE</span><span class=\"t-val\">Local Test Computer</span></div>",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">CPU</span><span class=\"t-val\">Quantum Core (16 Cores)</span></div>",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">RAM</span><span class=\"t-val\">16384 MB High-Speed ECC</span></div>",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">STORAGE</span><span class=\"t-val\">NVMe Crypto LUKS Encrypted</span></div>",
+    "              <div class=\"telemetry-item\"><span class=\"t-label\">SECURITY</span><span class=\"t-val sec-ok\">Level 3 Sandbox Active</span></div>",
+    "            </div>",
+    "            <div class=\"telemetry-notice\">",
+    "              <span class=\"notice-icon\">ⓘ</span>",
+    "              <p>Ready for terminal emulation. Press <strong>LOG IN</strong> to start kernel initialization.</p>",
+    "            </div>",
+    "          </div>",
+    "        </aside>",
+    "      </main>",
+    "      <footer class=\"main-menu-footer\">",
+    "        <div class=\"menu-footer-left\">DEMICUBE CYBERNETICS // ALL RIGHTS RESERVED © 2026</div>",
+    "        <div class=\"menu-footer-right\">PRESS <strong>ENTER</strong> OR CLICK <strong>LOG IN</strong> TO BOOT</div>",
+    "      </footer>",
+    "    </div>",
+    "  </section>",
+    "  <section id=\"boot-screen\" class=\"boot-screen hidden\">",
     "    <pre id=\"boot-log\" class=\"boot-log\"></pre>",
     "  </section>",
     "  <section id=\"crash-screen\" class=\"crash-screen hidden\">",
@@ -67,7 +182,7 @@ export function createDesktopShell(rootElement, profile) {
     "    <div class=\"desktop-bg\">",
     "      <div class=\"desktop-logo\">DEMICUBE</div>",
     "    </div>",
-    "    <section id=\"login-screen\" class=\"login-screen hidden\" aria-label=\"User login\"><div class=\"login-panel\"><div class=\"login-kicker\">DEMICUBEOS SESSION</div><h1>Sign in</h1><p id=\"login-system\">Local test computer</p><div class=\"known-logins\"><button type=\"button\" data-known-login=\"admin\" data-known-password=\"3tHr90\">admin</button><button type=\"button\" data-known-login=\"test_user\" data-known-password=\"password123\">test_user</button></div><form id=\"login-form\"><label for=\"login-user\">User</label><input id=\"login-user\" autocomplete=\"username\" value=\"admin\" /><label for=\"login-password\">Password</label><input id=\"login-password\" type=\"password\" autocomplete=\"current-password\" /><button type=\"submit\">Log in</button></form><div id=\"login-error\" class=\"login-error\" role=\"alert\"></div></div></section>",
+    "    <section id=\"login-screen\" class=\"login-screen hidden\" aria-label=\"User login\"><div class=\"login-panel\"><div class=\"login-kicker\">DEMICUBEOS SESSION</div><h1>Sign in</h1><p id=\"login-system\">Local test computer</p><div class=\"known-logins\"><button type=\"button\" data-known-login=\"admin\" data-known-password=\"3tHr90\">admin</button><button type=\"button\" data-known-login=\"test_user\" data-known-password=\"password123\">test_user</button></div><form id=\"login-form\"><label for=\"login-user\">User</label><input id=\"login-user\" autocomplete=\"username\" value=\"admin\" /><label for=\"login-password\">Password</label><input id=\"login-password\" type=\"password\" autocomplete=\"current-password\" /><button type=\"submit\">Log in</button></form><div id=\"login-error\" class=\"login-error\" role=\"alert\"></div><button type=\"button\" id=\"return-main-menu-btn\" class=\"return-main-menu-btn\">◂ Return to Main Menu</button></div></section>",
     "    <section id=\"files-window\" class=\"files-window window-surface\" data-window-id=\"files\">",
     "      <header class=\"terminal-titlebar window-titlebar\"><div class=\"title-left\">Files</div><div id=\"files-path\" class=\"focus-label\">/</div><div class=\"window-controls\"><button data-window-action=\"minimize\">_</button><button data-window-action=\"maximize\">[]</button><button data-window-action=\"close\">X</button></div></header>",
     "      <div class=\"files-toolbar\"><button data-files-action=\"back\">&lt;</button><button data-files-action=\"up\">^</button><button data-files-action=\"refresh\">R</button><input id=\"files-url\" aria-label=\"File path\" value=\"/\" /></div>",
@@ -166,6 +281,14 @@ export function createDesktopShell(rootElement, profile) {
   ].join("\n");
 
   const bootScreen = document.getElementById("boot-screen");
+  const splashScreen = document.getElementById("splash-screen");
+  const splashVideo = document.getElementById("splash-video");
+  const splashSkipBtn = document.getElementById("splash-skip-btn");
+  const splashFallback = document.getElementById("splash-fallback");
+  const mainMenuScreen = document.getElementById("main-menu-screen");
+  const mainMenuCanvas = document.getElementById("main-menu-canvas");
+  const mainMenuLoginBtn = document.getElementById("main-menu-login-btn");
+  const returnMainMenuBtn = document.getElementById("return-main-menu-btn");
   const crashScreen = document.getElementById("crash-screen");
   const crashOsName = document.getElementById("crash-os-name");
   const crashUrlOsName = document.getElementById("crash-url-osname");
@@ -359,6 +482,203 @@ export function createDesktopShell(rootElement, profile) {
     }
   });
 
+  const menuCanvasController = createMenuCanvas(mainMenuCanvas);
+  let splashActive = false;
+  let splashFallbackTimer = null;
+  let mainMenuLoginHandler = null;
+  let returnToMainMenuHandler = null;
+
+  function playTerminalBeep(type = "hover") {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      if (type === "hover") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(660, now + 0.04);
+        gain.gain.setValueAtTime(0.025, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } else if (type === "click") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(1174.66, now + 0.1);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      }
+    } catch (e) {}
+  }
+
+  function endSplash() {
+    if (!splashActive) return;
+    splashActive = false;
+    if (splashFallbackTimer) {
+      clearTimeout(splashFallbackTimer);
+      splashFallbackTimer = null;
+    }
+    if (splashVideo) {
+      try {
+        splashVideo.pause();
+      } catch (e) {}
+    }
+    splashScreen.classList.add("hidden");
+    showMainMenu();
+  }
+
+  function showSplashScreen() {
+    splashActive = true;
+    splashScreen.classList.remove("hidden");
+    mainMenuScreen.classList.add("hidden");
+    bootScreen.classList.add("hidden");
+    desktopScreen.classList.add("hidden");
+    crashScreen.classList.add("hidden");
+    loginScreen.classList.add("hidden");
+    menuCanvasController.stop();
+
+    if (splashFallback) {
+      splashFallback.classList.remove("fade-out", "hidden");
+    }
+
+    let videoPlaying = false;
+    const markVideoPlaying = () => {
+      if (!videoPlaying && splashVideo && splashVideo.currentTime > 0.05) {
+        videoPlaying = true;
+        if (splashFallback) {
+          splashFallback.classList.add("fade-out");
+          setTimeout(() => {
+            if (splashFallback && videoPlaying) splashFallback.classList.add("hidden");
+          }, 400);
+        }
+        if (splashFallbackTimer) {
+          clearTimeout(splashFallbackTimer);
+          splashFallbackTimer = null;
+        }
+      }
+    };
+
+    if (splashVideo) {
+      try {
+        splashVideo.currentTime = 0;
+      } catch (e) {}
+
+      splashVideo.removeEventListener("timeupdate", markVideoPlaying);
+      splashVideo.addEventListener("timeupdate", markVideoPlaying);
+      splashVideo.addEventListener("playing", markVideoPlaying);
+
+      const playPromise = splashVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("[DemicubeOS] Video autoplay prevented or empty stream:", err?.message || err);
+        });
+      }
+    }
+
+    // Safety fallback timer: runs animated cyber cube intro if video file is empty/missing
+    splashFallbackTimer = setTimeout(() => {
+      if (!videoPlaying) {
+        endSplash();
+      }
+    }, 3500);
+  }
+
+  if (splashVideo) {
+    splashVideo.addEventListener("ended", () => {
+      endSplash();
+    });
+    splashVideo.addEventListener("error", () => {
+      console.warn("[DemicubeOS] src/media/demicubeOS.mp4 could not be decoded. Using cyber animation fallback.");
+      if (splashActive && !splashFallbackTimer) {
+        splashFallbackTimer = setTimeout(endSplash, 3200);
+      }
+    });
+  }
+
+  if (splashSkipBtn) {
+    splashSkipBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playTerminalBeep("click");
+      endSplash();
+    });
+  }
+
+  if (splashScreen) {
+    splashScreen.addEventListener("click", () => {
+      endSplash();
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (splashActive) {
+      endSplash();
+    } else if (!mainMenuScreen.classList.contains("hidden")) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        triggerMainMenuLogin();
+      }
+    }
+  });
+
+  function showMainMenu() {
+    splashActive = false;
+    if (splashFallbackTimer) {
+      clearTimeout(splashFallbackTimer);
+      splashFallbackTimer = null;
+    }
+    splashScreen.classList.add("hidden");
+    bootScreen.classList.add("hidden");
+    desktopScreen.classList.add("hidden");
+    crashScreen.classList.add("hidden");
+    loginScreen.classList.add("hidden");
+    mainMenuScreen.classList.remove("hidden");
+
+    menuCanvasController.start();
+    if (mainMenuLoginBtn) {
+      mainMenuLoginBtn.focus();
+    }
+  }
+
+  function hideMainMenu() {
+    mainMenuScreen.classList.add("hidden");
+    menuCanvasController.stop();
+  }
+
+  function triggerMainMenuLogin() {
+    playTerminalBeep("click");
+    hideMainMenu();
+    if (mainMenuLoginHandler) {
+      mainMenuLoginHandler();
+    }
+  }
+
+  if (mainMenuLoginBtn) {
+    mainMenuLoginBtn.addEventListener("click", () => {
+      triggerMainMenuLogin();
+    });
+    mainMenuLoginBtn.addEventListener("mouseenter", () => {
+      playTerminalBeep("hover");
+    });
+  }
+
+  if (returnMainMenuBtn) {
+    returnMainMenuBtn.addEventListener("click", () => {
+      playTerminalBeep("click");
+      if (returnToMainMenuHandler) {
+        returnToMainMenuHandler();
+      } else {
+        showMainMenu();
+      }
+    });
+  }
+
   document.querySelector(".desktop-bg").addEventListener("click", () => {
     if (desktopFocusHandler) desktopFocusHandler();
   });
@@ -370,6 +690,9 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   function showDesktop() {
+    splashScreen.classList.add("hidden");
+    mainMenuScreen.classList.add("hidden");
+    menuCanvasController.stop();
     loginScreen.classList.add("hidden");
     bootScreen.classList.add("hidden");
     crashScreen.classList.add("hidden");
@@ -377,11 +700,14 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   function showLoginScreen() {
+    splashScreen.classList.add("hidden");
+    mainMenuScreen.classList.add("hidden");
+    menuCanvasController.stop();
     closeStartMenu();
     loginScreen.classList.remove("hidden");
     loginPassword.value = "";
     loginError.textContent = "";
-    loginSystem.textContent = profile.distroName + " · " + profile.systemId;
+    loginSystem.textContent = profile.distroName + " · Local test computer";
     loginUser.focus();
   }
 
@@ -545,6 +871,9 @@ export function createDesktopShell(rootElement, profile) {
 
   function showBootScreen() {
     bootLog.textContent = "";
+    splashScreen.classList.add("hidden");
+    mainMenuScreen.classList.add("hidden");
+    menuCanvasController.stop();
     desktopScreen.classList.add("hidden");
     crashScreen.classList.add("hidden");
     loginScreen.classList.add("hidden");
@@ -552,6 +881,9 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   function showCrashScreen(osName, details = {}) {
+    splashScreen.classList.add("hidden");
+    mainMenuScreen.classList.add("hidden");
+    menuCanvasController.stop();
     desktopScreen.classList.add("hidden");
     bootScreen.classList.add("hidden");
     loginScreen.classList.add("hidden");
@@ -870,6 +1202,18 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   return {
+    showSplashScreen,
+    hideSplashScreen() {
+      splashScreen.classList.add("hidden");
+    },
+    showMainMenu,
+    hideMainMenu,
+    onMainMenuLogin(handler) {
+      mainMenuLoginHandler = handler;
+    },
+    onReturnToMainMenu(handler) {
+      returnToMainMenuHandler = handler;
+    },
     appendBootLine,
     showDesktop,
     showLoginScreen,
