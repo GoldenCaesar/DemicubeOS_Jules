@@ -1,3 +1,5 @@
+import { DEFAULT_WORDLIST } from "../core/hashed-key.js";
+
 export class ClawderPythonApp {
   constructor({ ui, fileSystem, loginManager, loggingSystem, getFilesApp }) {
     this.ui = ui;
@@ -94,6 +96,9 @@ if __name__ == "__main__":
     if (!this.fileSystem) return;
     this.fileSystem.mkdir("/documents");
     this.fileSystem.mkdir("/documents/clawder-python");
+    if (!this.fileSystem.resolve("/documents/clawder-python/wordlist.txt")) {
+      this.fileSystem.write("/documents/clawder-python/wordlist.txt", DEFAULT_WORDLIST, "admin", "admin", "644");
+    }
   }
 
   getActiveUser() {

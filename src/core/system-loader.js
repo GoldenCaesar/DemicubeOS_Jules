@@ -67,11 +67,24 @@ export const FALLBACK_SYSTEM = {
     },
     dev: { "null": { type: "file", format: "text", content: "" } },
     log: { "boot.log": { type: "file", format: "text", content: "DemicubeOS boot completed." } },
-    sys: { "wallpaper.bin": { type: "file", format: "binary" }, "theme.bin": { type: "file", format: "binary" }, "kernel.sys": { type: "file", format: "binary" } }
+    sys: { "wallpaper.bin": { type: "file", format: "binary" }, "theme.bin": { type: "file", format: "binary" }, "kernel.sys": { type: "file", format: "binary" } },
+    etc: {
+      group: {
+        "system_groups.reg": {
+          type: "file",
+          format: "text",
+          content: "; DemicubeOS System Groups Registry\n; File: /etc/group/system_groups.reg\n\n[admin]\nsudo=true\nusers=admin\n\n[test_user]\nsudo=false\nusers=test_user\n"
+        }
+      }
+    }
   },
   users: [
-    { id: "admin", username: "admin", password: "3tHr90", role: "admin", permissions: ["full"], homeDir: "/home/admin" },
-    { id: "test_user", username: "test_user", password: "password123", role: "admin", permissions: ["full"], homeDir: "/home/test_user" }
+    { id: "admin", username: "admin", password: "3tHr90", role: "admin", permissions: ["full"], homeDir: "/home/admin", groups: ["admin"] },
+    { id: "test_user", username: "test_user", password: "password123", role: "user", permissions: ["user"], homeDir: "/home/test_user", groups: ["test_user"] }
+  ],
+  groups: [
+    { name: "admin", sudo: true, users: ["admin"] },
+    { name: "test_user", sudo: false, users: ["test_user"] }
   ]
 };
 
@@ -79,9 +92,14 @@ export async function loadSystemDefinition() {
   try {
     const systemResponse = await fetch("./content/Systems/192.168.56.101/system.json");
     const system = await systemResponse.json();
-    const users = await (await fetch("./content/Systems/192.168.56.101/users.json")).json();
+    const usersData = await (await fetch("./content/Systems/192.168.56.101/users.json")).json();
     const filesystem = await (await fetch("./content/Systems/192.168.56.101/filesystem.json")).json();
-    return { ...system, users: users.users, filesystem };
+    return {
+      ...system,
+      users: usersData.users,
+      groups: usersData.groups || [],
+      filesystem
+    };
   } catch {
     return FALLBACK_SYSTEM;
   }

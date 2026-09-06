@@ -32,6 +32,7 @@ Provide tools and documentation for community developers to easily create new sy
 
 ### 1. CORE OS FEATURES
 - [x] Startup Splash Screen with video playback (`src/media/demicubeOS.mp4`) & procedural 3D fallback
+- [x] Audio toggle controls on splash screen (unmute/mute) with browser autoplay policy handling
 - [x] Looping Animated 3D Cyber Main Menu (`src/ui/menu-canvas.js`)
 - [x] Main Menu -> Boot Sequence -> Login Screen -> Desktop Shell flow
 - [x] Boot sequence with dynamic OS name support
@@ -40,11 +41,16 @@ Provide tools and documentation for community developers to easily create new sy
 - [x] Immediate RAM exhaustion BSOD crash and reboot when task manager calculation reaches 100%
 - [x] Kernel panic/crash sequence on critical process termination (PID 1) with tuned hold time (~3x loading bar)
 - [x] Desktop shell with window management
-- [x] Login screen with user authentication (`admin`, `test_user`) and known logins picker
+- [x] Login screen with user authentication (`admin`, `test_user`, `steve`) and known logins picker
 - [x] "Return to Main Menu" action on login screen with clean state reset
 - [x] Taskbar and window controls (minimize, maximize, close, drag, resize)
-- [x] System logout flow (`logout` command and Start Menu -> Log Out) returning to system sign-in screen
-- [ ] Proper file permissions system (POSIX rwx simulation active, enforcement in progress)
+- [x] System logout flow (`logout` command and Start Menu -> Log Out) returning to current system's sign-in screen
+- [x] User Groups & Registry System (`/etc/group/system_groups.reg`)
+- [x] User Group command management (`usermod -aG`, `usermod -rm`)
+- [x] Dynamic User Group queries (`groups [user]`, `id [user]`)
+- [x] Sudo privileges tied to system group definitions
+- [x] Primary user group invariant (users are always part of their own group and cannot be removed)
+- [x] POSIX rwx file permissions system dynamic group checking with sudo overrides
 - [x] User privilege levels (admin, user, guest, root / sudo)
 - [ ] Process state management improvements
 - [x] Memory management refinements (proactive RAM tracking and out-of-memory crash trigger)
@@ -242,11 +248,27 @@ Provide tools and documentation for community developers to easily create new sy
 ---
 
 ## ✨ Recent Accomplishments
-
-- ✅ **Looping 3D Cyber Main Menu**: Built responsive HTML5 Canvas engine (`src/ui/menu-canvas.js`) rendering an isometric perspective cyber grid with cyan horizon glows, floating particles, rotating wireframe Demicube, and Web Audio API synthesizer effects.
-- ✅ **Video Startup Splash Screen**: Integrated `src/media/demicubeOS.mp4` with automatic video playback detection, multiple source paths (`/src/media/` and `./src/media/`), a high-tech 3D procedural cube fallback, and keyboard/click skip controls.
-- ✅ **Fixed `logout` Command**: Completely separated `logout` from `exit`. Typing `logout` now formally terminates the operating system user session, clears active process windows, logs auth telemetry, and returns the player to that system's **Sign In screen** (`ui.showLoginScreen()`).
-- ✅ **Distinct `exit` Command**: Dedicated to closing the active terminal window (`kill <pid>`) or disconnecting from an active SSH hop, without disrupting the underlying user session.
+ 
+ - ✅ **User Groups & Virtual Registry System**:
+   - Implemented `/etc/group/system_groups.reg` owned by `admin:admin` with permissions `0644`.
+   - Defined INI/REG-style group definitions storing `sudo=<true|false>` and `users=<comma-delimited>`.
+   - Built `group-manager.js` with full serialization, parser, and membership invariant verification.
+   - Enforced primary group invariant: each user automatically belongs to a group of their own name and cannot be removed from it.
+   - Dynamic permission checking in `file-system.js` using `getUserGroups` and `isUserSudoer`.
+ - ✅ **Terminal `usermod`, `groups`, & `id` Commands**:
+   - Implemented `usermod -aG <group> <user>` to append users to groups.
+   - Implemented `usermod -rm <group> <user>` to remove users from secondary groups.
+   - Guarded `usermod` by write access to `/etc/group/system_groups.reg` (or sudoer status).
+   - Refactored `groups` and `id` in `terminal.js` to query `/etc/group/system_groups.reg` dynamically.
+ - ✅ **Video Startup Splash Screen & Audio Controls**:
+   - Fixed startup video playback for `src/media/demicubeOS.mp4` by resolving DOM element lifecycle and eliminating premature 3.5s timeouts.
+   - Procedural 3D CSS cube fallback now stays hidden during normal playback and only surfaces if video decoding genuinely fails or stalls.
+   - Added interactive `🔊 UNMUTE` toggle button and user interaction handlers for audio track playback.
+ - ✅ **Context-Aware System `logout` Command**:
+   - Updated `logout` in `terminal.js` and `main.js` to log out of the currently active system (local host or remote SSH target).
+   - Shows that system's designated sign-in console with hostname, description, and available credentials picker.
+   - Distinct from `exit` / `disconnect`, which close the active window or disconnect an SSH connection hop.
+ - ✅ **Looping 3D Cyber Main Menu**: Built responsive HTML5 Canvas engine (`src/ui/menu-canvas.js`) rendering an isometric perspective cyber grid with cyan horizon glows, floating particles, rotating wireframe Demicube, and Web Audio API synthesizer effects.
 - ✅ **Sign In Navigation**: Added "◂ Return to Main Menu" button on the login screen for clean navigation back to the 3D menu canvas.
 - ✅ **Dynamic OS-Specific Boot & Shutdown Sequences**: Dynamic branding based on system JSON definition.
 - ✅ **Authentic BSOD Crash Sequences**: Windows-inspired blue screen (#0078d7) with RAM exhaustion crash triggers at 100% memory and PID 1 critical termination.

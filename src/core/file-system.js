@@ -1,3 +1,15 @@
+import {
+  SYSTEM_GROUPS_REG_PATH,
+  parseSystemGroups,
+  serializeSystemGroups,
+  getUserGroups as resolveUserGroups,
+  isUserSudoer as resolveIsUserSudoer,
+  appendGroupToUser,
+  removeGroupFromUser,
+  generateDefaultGroups
+} from "./group-manager.js";
+import { generateHashedKeyContent, DEFAULT_WORDLIST } from "./hashed-key.js";
+
 const binaryPreview = "\u0000\u0001\u0007\u001b\u00a4\u00ff\u0003\u0010\u00d4\u0019\u0088\u0000\u00fe\u0006";
 
 const defaultAuthLog = `Sep 03 12:00:00 demicube-testbox systemd-logind[412]: New session c1 of user admin.
@@ -26,6 +38,7 @@ export function modeToPermissionString(permissions = "644", isDirectory = false)
 
 export class FileSystem {
   constructor(programs = [], systemDefinition = null) {
+    this.systemDefinition = systemDefinition;
     this.root = systemDefinition?.filesystem ? this.fromDefinition(systemDefinition.filesystem) : {
       type: "directory",
       permissions: "755",
@@ -40,7 +53,7 @@ export class FileSystem {
           children: {
             admin: {
               type: "directory",
-              permissions: "755",
+              permissions: "750",
               owner: "admin",
               group: "admin",
               children: {
@@ -51,12 +64,12 @@ export class FileSystem {
             },
             test_user: {
               type: "directory",
-              permissions: "755",
+              permissions: "750",
               owner: "test_user",
-              group: "users",
+              group: "test_user",
               children: {
-                "welcome.txt": this.textFile("Welcome, test_user. Standard user.", "test_user", "users", "644"),
-                ".bash_history": this.textFile("whoami\nls -la\n", "test_user", "users", "644")
+                "welcome.txt": this.textFile("Welcome, test_user. Standard user.", "test_user", "test_user", "644"),
+                ".bash_history": this.textFile("whoami\nls -la\n", "test_user", "test_user", "644")
               }
             }
           }
@@ -85,6 +98,21 @@ export class FileSystem {
           owner: "admin",
           group: "admin",
           children: {}
+        },
+        downloads: {
+          type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
+          children: {
+            emulated: {
+              type: "directory",
+              permissions: "755",
+              owner: "admin",
+              group: "admin",
+              children: {}
+            }
+          }
         },
         music: {
           type: "directory",
@@ -134,6 +162,28 @@ export class FileSystem {
             "kernel.log": this.binaryFile("admin", "admin", "755")
           }
         },
+        etc: {
+          type: "directory",
+          permissions: "755",
+          owner: "admin",
+          group: "admin",
+          children: {
+            group: {
+              type: "directory",
+              permissions: "755",
+              owner: "admin",
+              group: "admin",
+              children: {
+                "system_groups.reg": this.textFile(
+                  serializeSystemGroups(generateDefaultGroups(systemDefinition?.users || ["admin", "test_user"])),
+                  "admin",
+                  "admin",
+                  "644"
+                )
+              }
+            }
+          }
+        },
         sys: {
           type: "directory",
           permissions: "755",
@@ -168,19 +218,30 @@ export class FileSystem {
     this.mkdir("/documents/zenmap");
     this.mkdir("/documents/vpnguard");
     this.mkdir("/documents/clawder-python");
-    this.mkdir("/home/admin");
+    this.mkdir("/home/admin", "admin", "admin", "750");
     this.mkdir("/home/admin/.ssh", "admin", "admin", "700");
     this.mkdir("/home/admin/.ssh/pbk", "admin", "admin", "700");
-    this.mkdir("/home/admin/.ssh/pkb", "admin", "admin", "700");
+    if (this.resolve("/home/admin/.ssh/pkb")) {
+      this.remove("/home/admin/.ssh/pkb");
+    }
     this.mkdir("/home/admin/.ssh/known_hosts", "admin", "admin", "700");
 
-    this.mkdir("/home/test_user", "test_user", "users", "755");
-    this.mkdir("/home/test_user/.ssh", "test_user", "users", "700");
-    this.mkdir("/home/test_user/.ssh/pbk", "test_user", "users", "700");
-    this.mkdir("/home/test_user/.ssh/pkb", "test_user", "users", "700");
-    this.mkdir("/home/test_user/.ssh/known_hosts", "test_user", "users", "700");
+    this.mkdir("/home/test_user", "test_user", "test_user", "750");
+    this.mkdir("/home/test_user/.ssh", "test_user", "test_user", "700");
+    this.mkdir("/home/test_user/.ssh/pbk", "test_user", "test_user", "700");
+    if (this.resolve("/home/test_user/.ssh/pkb")) {
+      this.remove("/home/test_user/.ssh/pkb");
+    }
+    this.mkdir("/home/test_user/.ssh/known_hosts", "test_user", "test_user", "700");
 
     this.mkdir("/dev");
+    this.mkdir("/etc", "admin", "admin", "755");
+    this.mkdir("/etc/group", "admin", "admin", "755");
+
+    if (!this.resolve(SYSTEM_GROUPS_REG_PATH)) {
+      const defaultGroups = generateDefaultGroups(this.systemDefinition?.users || ["admin", "test_user"]);
+      this.write(SYSTEM_GROUPS_REG_PATH, serializeSystemGroups(defaultGroups), "admin", "admin", "644");
+    }
 
     if (!this.resolve("/var/log/auth.log")) {
       this.write("/var/log/auth.log", defaultAuthLog, "admin", "admin", "644");
@@ -197,18 +258,53 @@ export class FileSystem {
     if (!this.resolve("/home/admin/.bash_history")) {
       this.write("/home/admin/.bash_history", "help\nls -la\ncat /documents/mission-brief.txt\n", "admin", "admin", "600");
     }
+    if (!this.resolve("/documents/clawder-python/wordlist.txt")) {
+      this.write("/documents/clawder-python/wordlist.txt", DEFAULT_WORDLIST, "admin", "admin", "644");
+    }
+
     if (!this.resolve("/home/admin/.ssh/pbk/admin.key")) {
       this.write("/home/admin/.ssh/pbk/admin.key", "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n", "admin", "admin", "600");
     }
-    if (!this.resolve("/home/admin/.ssh/pkb/admin.key")) {
-      this.write("/home/admin/.ssh/pkb/admin.key", "[ssh_key]\nusername=admin\nip=192.168.56.101\npassword=3tHr90\n", "admin", "admin", "600");
+    if (!this.resolve("/home/admin/.ssh/pbk/admin.sh")) {
+      this.write("/home/admin/.ssh/pbk/admin.sh", generateHashedKeyContent("admin", "192.168.56.101", "3tHr90"), "admin", "admin", "600");
+    }
+    if (this.resolve("/home/admin/.ssh/pkb/admin.key")) {
+      this.remove("/home/admin/.ssh/pkb/admin.key");
+    }
+    if (this.resolve("/home/admin/.ssh/pkb/admin.sh")) {
+      this.remove("/home/admin/.ssh/pkb/admin.sh");
     }
     if (!this.resolve("/home/test_user/.ssh/pbk/test_user.key")) {
-      this.write("/home/test_user/.ssh/pbk/test_user.key", "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n", "test_user", "users", "600");
+      this.write("/home/test_user/.ssh/pbk/test_user.key", "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n", "test_user", "test_user", "600");
     }
-    if (!this.resolve("/home/test_user/.ssh/pkb/test_user.key")) {
-      this.write("/home/test_user/.ssh/pkb/test_user.key", "[ssh_key]\nusername=test_user\nip=192.168.56.101\npassword=password123\n", "test_user", "users", "600");
+    if (!this.resolve("/home/test_user/.ssh/pbk/test_user.sh")) {
+      this.write("/home/test_user/.ssh/pbk/test_user.sh", generateHashedKeyContent("test_user", "192.168.56.101", "password123"), "test_user", "test_user", "600");
     }
+    if (this.resolve("/home/test_user/.ssh/pkb/test_user.key")) {
+      this.remove("/home/test_user/.ssh/pkb/test_user.key");
+    }
+    if (this.resolve("/home/test_user/.ssh/pkb/test_user.sh")) {
+      this.remove("/home/test_user/.ssh/pkb/test_user.sh");
+    }
+
+    // Emulated test-laptop downloaded files on demicube-testbox
+    this.mkdir("/downloads", "admin", "admin", "755");
+    this.mkdir("/downloads/emulated", "admin", "admin", "755");
+    this.mkdir("/downloads/emulated/test-laptop", "admin", "admin", "755");
+    this.mkdir("/downloads/emulated/test-laptop/home", "admin", "admin", "755");
+    this.mkdir("/downloads/emulated/test-laptop/home/admin", "admin", "admin", "750");
+    this.mkdir("/downloads/emulated/test-laptop/home/admin/.ssh", "admin", "admin", "700");
+    this.mkdir("/downloads/emulated/test-laptop/home/admin/.ssh/pbk", "admin", "admin", "700");
+    if (!this.resolve("/downloads/emulated/test-laptop/home/admin/.ssh/pbk/admin.sh")) {
+      this.write(
+        "/downloads/emulated/test-laptop/home/admin/.ssh/pbk/admin.sh",
+        generateHashedKeyContent("admin", "192.168.56.108", "k8L3m9"),
+        "admin",
+        "admin",
+        "644"
+      );
+    }
+
   }
 
   reset() {
@@ -216,7 +312,7 @@ export class FileSystem {
   }
 
   clone() {
-    const cloned = new FileSystem([], null);
+    const cloned = new FileSystem([], this.systemDefinition);
     cloned.root = structuredClone(this.root);
     cloned.initialRoot = structuredClone(this.initialRoot);
     return cloned;
@@ -225,9 +321,15 @@ export class FileSystem {
   fromDefinition(filesystem) {
     const convert = (value, name = "", currentPath = "") => {
       const fullPath = currentPath ? (currentPath === "/" ? `/${name}` : `${currentPath}/${name}`) : `/${name}`;
-      const isTestUser = fullPath.startsWith("/home/test_user");
-      const defaultOwner = isTestUser ? "test_user" : "admin";
-      const defaultGroup = isTestUser ? "users" : "admin";
+      let defaultOwner = "admin";
+      let defaultGroup = "admin";
+      if (fullPath.startsWith("/home/")) {
+        const seg = fullPath.slice("/home/".length).split("/")[0];
+        if (seg) {
+          defaultOwner = seg;
+          defaultGroup = seg;
+        }
+      }
 
       if (value.type === "file") {
         const isExe = value.executable || (value.format === "binary" && fullPath.startsWith("/programs")) || fullPath.endsWith(".py") || fullPath.endsWith(".sh");
@@ -244,7 +346,8 @@ export class FileSystem {
         return base;
       }
 
-      const defaultDirPerm = fullPath.includes(".ssh") ? "700" : "755";
+      const isHomeUserDir = fullPath.startsWith("/home/") && !fullPath.slice("/home/".length).includes("/");
+      const defaultDirPerm = fullPath.includes(".ssh") ? "700" : (isHomeUserDir ? "750" : "755");
       const children = {};
       const srcChildren = value.children || value;
       for (const [childName, childValue] of Object.entries(srcChildren)) {
@@ -329,9 +432,15 @@ export class FileSystem {
     // Root always bypasses DAC checks with full access
     if (activeUser === "root") return true;
 
+    const resolvedGroups = (Array.isArray(activeGroups) && activeGroups.length > 0)
+      ? activeGroups
+      : (activeUser ? this.getUserGroups(activeUser) : []);
+
     // Admins and sudo users have full access
+    const isSudo = this.isUserSudoer(activeUser);
     const isAdmin = activeUser === "admin" ||
-                    (Array.isArray(activeGroups) && (activeGroups.includes("admin") || activeGroups.includes("root") || activeGroups.includes("wheel") || activeGroups.includes("sudo")));
+                    isSudo ||
+                    (Array.isArray(resolvedGroups) && (resolvedGroups.includes("admin") || resolvedGroups.includes("root") || resolvedGroups.includes("wheel") || resolvedGroups.includes("sudo")));
     if (isAdmin) {
       if (requiredAccess === "execute" && node.type === "file") {
         const pStr = String(node.permissions || "644").padStart(3, "0").slice(-3);
@@ -356,7 +465,7 @@ export class FileSystem {
         let dPerm = do_;
         if (activeUser && activeUser === dirNode.owner) {
           dPerm = du;
-        } else if (Array.isArray(activeGroups) && activeGroups.includes(dirNode.group)) {
+        } else if (Array.isArray(resolvedGroups) && resolvedGroups.includes(dirNode.group)) {
           dPerm = dg;
         }
         if ((dPerm & 1) === 0) {
@@ -373,7 +482,7 @@ export class FileSystem {
     let activeRolePerm = oPerm; // Default to Others
     if (activeUser && activeUser === node.owner) {
       activeRolePerm = uPerm;
-    } else if (Array.isArray(activeGroups) && activeGroups.includes(node.group)) {
+    } else if (Array.isArray(resolvedGroups) && resolvedGroups.includes(node.group)) {
       activeRolePerm = gPerm;
     }
 
@@ -384,6 +493,61 @@ export class FileSystem {
     return false;
   }
 
+  getGroups() {
+    const regNode = this.resolve(SYSTEM_GROUPS_REG_PATH);
+    if (regNode && regNode.type === "file" && typeof regNode.content === "string") {
+      const parsed = parseSystemGroups(regNode.content);
+      if (parsed.length > 0) return parsed;
+    }
+    const defaultGroups = generateDefaultGroups(this.systemDefinition?.users || ["admin", "test_user"]);
+    return defaultGroups;
+  }
+
+  getUserGroups(username) {
+    const groups = this.getGroups();
+    return resolveUserGroups(groups, username);
+  }
+
+  isUserSudoer(username) {
+    const groups = this.getGroups();
+    return resolveIsUserSudoer(groups, username);
+  }
+
+  saveGroups(groups, activeUser = "admin") {
+    const content = serializeSystemGroups(groups);
+    this.mkdir("/etc", "admin", "admin", "755");
+    this.mkdir("/etc/group", "admin", "admin", "755");
+    return this.write(SYSTEM_GROUPS_REG_PATH, content, "admin", "admin", "644");
+  }
+
+  modifyUserGroup(mode, groupName, targetUser, activeUser = "admin") {
+    const userGroups = this.getUserGroups(activeUser);
+    const hasWritePermission = activeUser === "root" ||
+                               this.isUserSudoer(activeUser) ||
+                               this.hasPermission(activeUser, userGroups, SYSTEM_GROUPS_REG_PATH, "write");
+
+    if (!hasWritePermission) {
+      return { success: false, error: "Permission denied" };
+    }
+
+    const groups = this.getGroups();
+    let result;
+    if (mode === "append") {
+      result = appendGroupToUser(groups, groupName, targetUser);
+    } else if (mode === "remove") {
+      result = removeGroupFromUser(groups, groupName, targetUser);
+    } else {
+      return { success: false, error: `unknown mode '${mode}'` };
+    }
+
+    if (!result.success) {
+      return result;
+    }
+
+    this.saveGroups(groups, activeUser);
+    return { success: true, group: result.group };
+  }
+
   mkdir(path, owner = "admin", group = "admin", permissions = "755") {
     const normalized = this.normalize(path);
     if (normalized === "/documents/zenmap/vpnguard" || normalized.startsWith("/documents/zenmap/vpnguard/")) {
@@ -391,11 +555,19 @@ export class FileSystem {
     }
     const parts = normalized.slice(1).split("/").filter(Boolean);
     let current = this.root;
-    for (const part of parts) {
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isTarget = (i === parts.length - 1);
       if (!current.children[part]) {
         current.children[part] = { type: "directory", children: {}, owner, group, permissions };
       } else if (current.children[part].type !== "directory") {
         return false;
+      } else if (isTarget) {
+        if (permissions && permissions !== "755") {
+          current.children[part].permissions = permissions;
+        }
+        if (owner) current.children[part].owner = owner;
+        if (group) current.children[part].group = group;
       }
       current = current.children[part];
     }
@@ -413,7 +585,7 @@ export class FileSystem {
     const node = this.resolve(path);
     if (!node) return { success: false, error: "No such file or directory" };
 
-    const isAdmin = activeUser === "root" || activeUser === "admin";
+    const isAdmin = activeUser === "root" || activeUser === "admin" || this.isUserSudoer(activeUser);
     if (!isAdmin && node.owner && node.owner !== activeUser) {
       return { success: false, error: "Operation not permitted" };
     }
@@ -460,7 +632,7 @@ export class FileSystem {
     const node = this.resolve(path);
     if (!node) return { success: false, error: "No such file or directory" };
 
-    const isAdmin = activeUser === "root" || activeUser === "admin";
+    const isAdmin = activeUser === "root" || activeUser === "admin" || this.isUserSudoer(activeUser);
     if (!isAdmin) {
       return { success: false, error: "Operation not permitted" };
     }

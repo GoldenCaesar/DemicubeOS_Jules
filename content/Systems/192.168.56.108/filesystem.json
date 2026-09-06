@@ -1,6 +1,11 @@
 {
   "home": {
     "admin": {
+      "welcome.txt": {
+        "type": "file",
+        "format": "text",
+        "content": "============================================================\nWelcome to test-laptop.\nLocal network test node for validation and troubleshooting.\nSystem status: Ready.\n============================================================"
+      },
       "notes.txt": {
         "type": "file",
         "format": "text",
@@ -30,6 +35,16 @@
         "type": "file",
         "format": "text",
         "content": "whoami\nls -la\ncat notes.txt\npython3 scan_network.py\nnano deploy.sh\nssh admin@demicube-testbox\n"
+      }
+    },
+    "steve": {
+      "welcome.txt": { "type": "file", "format": "text", "content": "Welcome, steve. Standard user." },
+      ".bash_history": { "type": "file", "format": "text", "content": "whoami\nls -la\n" },
+      ".ssh": {
+        "pbk": {
+          "steve.key": { "type": "file", "format": "text", "content": "[ssh_key]\nusername=steve\nip=192.168.56.108\npassword=password\n" }
+        },
+        "known_hosts": {}
       }
     }
   },
@@ -77,5 +92,14 @@
   },
   "dev": {
     "null": { "type": "file", "format": "text", "content": "" }
+  },
+  "etc": {
+    "group": {
+      "system_groups.reg": {
+        "type": "file",
+        "format": "text",
+        "content": "; DemicubeOS System Groups Registry\n; File: /etc/group/system_groups.reg\n\n[admin]\nsudo=true\nusers=admin\n\n[steve]\nsudo=false\nusers=steve\n"
+      }
+    }
   }
 }

@@ -363,46 +363,79 @@ async function main() {
   terminal.processes = new Map([[1, "system"]]);
   resourceManager.reset();
   windowManager.reset([]);
-  const handleSystemLogout = () => {
-    loggingSystem.logAuth("logout", { user: terminal.profile.promptUser, hostname: systemDefinition.hostname });
+  const handleSystemLogout = (sessionInfo = null) => {
+    const currentSession = sessionInfo || loggingSystem.getCurrentSession();
+    const currentHost = currentSession?.hostname || systemDefinition.hostname;
+    const currentUser = currentSession?.user || terminal.profile.promptUser;
+    const currentFs = currentSession?.fileSystem || fileSystem;
+
+    let targetSysDef = systemDefinition;
+    if (currentHost !== systemDefinition.hostname) {
+      const regSys = loggingSystem?.networkRegistry?.getSystem?.(currentHost) || loggingSystem?.remoteSystems?.get?.(currentHost);
+      if (regSys) {
+        targetSysDef = {
+          hostname: regSys.hostname || currentHost,
+          ip: regSys.ip || currentSession?.ip,
+          os: { name: regSys.os || "DemicubeOS" },
+          users: regSys.users || [],
+          role: regSys.role || `${currentHost} (${regSys.ip || ""})`
+        };
+      }
+    }
+
+    loggingSystem.logAuth("logout", { user: currentUser, hostname: currentHost, fileSystem: currentFs });
     loggingSystem.stopBackgroundDaemon();
     loginManager.logout();
-    if (loggingSystem.sessionChain?.length > 0) {
-      loggingSystem.sessionChain[0].user = "admin";
-    }
+    loginManager.system = targetSysDef;
+    loginManager.setFileSystem(currentFs);
+
     terminal.profile.promptUser = "admin";
+    terminal.profile.promptHost = currentHost;
+    terminal.fileSystem = currentFs;
     terminal.currentPath = "/home/admin";
     input.setSessionActive(false);
+    ui.closeNano?.();
     ui.closeAllWindows();
     terminal.processes = new Map([[1, "system"]]);
     resourceManager.reset();
     windowManager.reset([]);
     ui.setKnownLogins?.(loginManager.getKnownLogins());
-    ui.showLoginScreen();
+    ui.showLoginScreen(targetSysDef);
   };
   ui.onLogout(handleSystemLogout);
   terminal.onLogout(handleSystemLogout);
   const logIn = (username, password) => {
     if (!loginManager.authenticate(username, password)) {
       ui.showLoginError("Authentication failed");
-      loggingSystem.logAuth("custom", { service: "systemd-logind", message: `FAILED LOGIN for ${username} from tty1: Authentication failure` });
+      const currentHost = loginManager.system?.hostname || systemDefinition.hostname;
+      loggingSystem.logAuth("custom", { service: "systemd-logind", message: `FAILED LOGIN for ${username} on ${currentHost}: Authentication failure` });
       return;
     }
+    const currentHost = loginManager.system?.hostname || systemDefinition.hostname;
+    const currentFs = loginManager.fileSystem || fileSystem;
+
+    terminal.fileSystem = currentFs;
     terminal.processes = new Map([[1, "system"]]);
     resourceManager.reset();
     terminal.profile.promptUser = loginManager.currentUser.username;
-    terminal.profile.promptHost = systemDefinition.hostname;
+    terminal.profile.promptHost = currentHost;
     terminal.currentPath = loginManager.currentUser.homeDir || `/home/${username}`;
-    if (loggingSystem.sessionChain?.length > 0) {
-      loggingSystem.sessionChain[0].user = username;
+
+    const currentSession = loggingSystem.getCurrentSession();
+    if (currentSession) {
+      currentSession.user = username;
+      currentSession.fileSystem = currentFs;
+      currentSession.hostname = currentHost;
     }
+
     terminal.updatePromptPrefix();
+    files.fileSystem = currentFs;
     files.setPath(terminal.currentPath, false);
     ui.showDesktop();
     input.setSessionActive(true);
     windowManager.reset([]);
     system.startDaemon();
-    loggingSystem.logAuth("login", { user: username, hostname: systemDefinition.hostname });
+    loggingSystem.logAuth("login", { user: username, hostname: currentHost, fileSystem: currentFs });
   };
   ui.onLogin(logIn);
   loginManager.setFileSystem(fileSystem);

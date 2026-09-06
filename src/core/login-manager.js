@@ -93,9 +93,13 @@ export class LoginManager {
 
   isAdmin() {
     if (!this.currentUser) return false;
+    if (this.currentUser.username === "admin" || this.currentUser.username === "root") {
+      return true;
+    }
+    if (this.fileSystem && typeof this.fileSystem.isUserSudoer === "function") {
+      return this.fileSystem.isUserSudoer(this.currentUser.username);
+    }
     return this.currentUser.role === "admin" ||
-      this.currentUser.username === "admin" ||
-      this.currentUser.username === "root" ||
       this.currentUser.permissions?.includes("full") ||
       false;
   }

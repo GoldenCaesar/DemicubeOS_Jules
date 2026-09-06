@@ -1,5 +1,6 @@
 import { FileSystem } from "./file-system.js";
 import { formatSyslogDate } from "./logging-system.js";
+import { generateHashedKeyContent } from "./hashed-key.js";
 
 /**
  * NetworkRegistry manages all known virtual systems across the local and remote networks.
@@ -25,26 +26,79 @@ export class NetworkRegistry {
       `ip=${ip}`,
       `password=${adminPassword}`
     ].join("\n"), "admin", "admin", "600");
+    fs.write(
+      `/home/admin/.ssh/pbk/admin.sh`,
+      generateHashedKeyContent("admin", ip, adminPassword),
+      "admin",
+      "admin",
+      "600"
+    );
+
+    let groupsRegContent = [
+      "; DemicubeOS System Groups Registry",
+      "; File: /etc/group/system_groups.reg",
+      "",
+      "[admin]",
+      "sudo=true",
+      "users=admin",
+      ""
+    ];
 
     if (hostname === "demicube-testbox" || ip === "192.168.56.101") {
-      fs.mkdir("/home/test_user", "test_user", "users", "750");
-      fs.mkdir("/home/test_user/.ssh", "test_user", "users", "700");
-      fs.mkdir("/home/test_user/.ssh/pbk", "test_user", "users", "700");
-      fs.mkdir("/home/test_user/.ssh/known_hosts", "test_user", "users", "700");
+      fs.mkdir("/home/test_user", "test_user", "test_user", "750");
+      fs.mkdir("/home/test_user/.ssh", "test_user", "test_user", "700");
+      fs.mkdir("/home/test_user/.ssh/pbk", "test_user", "test_user", "700");
+      fs.mkdir("/home/test_user/.ssh/known_hosts", "test_user", "test_user", "700");
       fs.write(`/home/test_user/.ssh/pbk/test_user.key`, [
         "[ssh_key]",
         "username=test_user",
         `ip=${ip}`,
         "password=password123"
-      ].join("\n"), "test_user", "users", "600");
+      ].join("\n"), "test_user", "test_user", "600");
+      fs.write(
+        `/home/test_user/.ssh/pbk/test_user.sh`,
+        generateHashedKeyContent("test_user", ip, "password123"),
+        "test_user",
+        "test_user",
+        "600"
+      );
+
+      fs.write("/home/test_user/welcome.txt", "Welcome, test_user. Standard user.\n", "test_user", "test_user", "644");
+      groupsRegContent.push("[test_user]", "sudo=false", "users=test_user", "");
+    } else if (hostname === "test-laptop" || ip === "192.168.56.108") {
+      fs.mkdir("/home/steve", "steve", "steve", "750");
+      fs.mkdir("/home/steve/.ssh", "steve", "steve", "700");
+      fs.mkdir("/home/steve/.ssh/pbk", "steve", "steve", "700");
+      fs.mkdir("/home/steve/.ssh/known_hosts", "steve", "steve", "700");
+      fs.write(`/home/steve/.ssh/pbk/steve.key`, [
+        "[ssh_key]",
+        "username=steve",
+        `ip=${ip}`,
+        "password=password"
+      ].join("\n"), "steve", "steve", "600");
+      fs.write(
+        `/home/steve/.ssh/pbk/steve.sh`,
+        generateHashedKeyContent("steve", ip, "password"),
+        "steve",
+        "steve",
+        "600"
+      );
+      fs.write("/home/steve/welcome.txt", "Welcome, steve. Standard user.\n", "steve", "steve", "644");
+      fs.write("/home/steve/notes.txt", "Steve's local notes.\n", "steve", "steve", "644");
+
+      groupsRegContent.push("[steve]", "sudo=false", "users=steve", "");
     }
+
 
     fs.mkdir("/var");
     fs.mkdir("/var/log");
     fs.mkdir("/documents");
     fs.mkdir("/programs");
     fs.mkdir("/dev");
-    fs.mkdir("/etc");
+    fs.mkdir("/etc", "admin", "admin", "755");
+    fs.mkdir("/etc/group", "admin", "admin", "755");
+
+    fs.write("/etc/group/system_groups.reg", groupsRegContent.join("\n"), "admin", "admin", "644");
 
     fs.write("/dev/null", "");
     fs.write(
@@ -59,9 +113,18 @@ export class NetworkRegistry {
     fs.write("/home/admin/.bash_history", "whoami\nls -la\n");
 
     for (const [path, content] of Object.entries(extraFiles)) {
+      let fileOwner = "admin";
+      let fileGroup = "admin";
+      if (path.startsWith("/home/")) {
+        const seg = path.slice("/home/".length).split("/")[0];
+        if (seg) {
+          fileOwner = seg;
+          fileGroup = seg;
+        }
+      }
       const parent = path.substring(0, path.lastIndexOf("/"));
-      if (parent) fs.mkdir(parent);
-      fs.write(path, content);
+      if (parent) fs.mkdir(parent, fileOwner, fileGroup);
+      fs.write(path, content, fileOwner, fileGroup);
     }
 
     return fs;
@@ -111,6 +174,13 @@ export class NetworkRegistry {
 
     // 2. LOCAL TEST SYSTEM (test-laptop)
     const testLaptopFs = this.createBaseFs(now, "test-laptop", "192.168.56.108", {
+      "/home/admin/welcome.txt": [
+        "============================================================",
+        "Welcome to test-laptop.",
+        "Local network test node for validation and troubleshooting.",
+        "System status: Ready.",
+        "============================================================"
+      ].join("\n"),
       "/home/admin/notes.txt": [
         "============================================================",
         "TEST-LAPTOP - LOCAL NETWORK TEST SYSTEM",
@@ -145,7 +215,7 @@ export class NetworkRegistry {
         { port: 80, protocol: "tcp", service: "http", version: "nginx 1.24.0", state: "open" }
       ],
       user: "admin",
-      passwords: { admin: "k8L3m9" },
+      passwords: { admin: "k8L3m9", steve: "password" },
       getFileSystem: () => testLaptopFs
     });
 

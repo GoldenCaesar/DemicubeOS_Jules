@@ -1,5 +1,6 @@
 import { playerNetworkState } from "../core/network-state.js";
 import { modeToPermissionString } from "../core/file-system.js";
+import { sha256, parseHashedKeyContent, DEFAULT_WORDLIST } from "../core/hashed-key.js";
 
 export class TerminalApp {
   constructor({ ui, profile, windowManager, fileSystem, filesApp, rebootSystem, fakePython, resourceManager, loggingSystem = null }) {
@@ -15,6 +16,8 @@ export class TerminalApp {
     this.logoutHandler = null;
     this.currentPath = "/home/admin";
     this.waitingForPassword = null;
+    this.caesarRipSession = null;
+    this.caesarRipRunning = null;
     this.running = true;
     this.isElevated = false;
     this.processWindows = new Map([
@@ -639,6 +642,27 @@ export class TerminalApp {
         "EXAMPLES",
         "  disconnect"
       ],
+      scp: [
+        "NAME",
+        "  scp - secure copy (remote file copy to local home system)",
+        "",
+        "SYNOPSIS",
+        "  scp [-r] <remote_file_or_directory> ...",
+        "",
+        "DESCRIPTION",
+        "  Copies files and directories from the active remote SSH system back to your local home system.",
+        "  Copied files are automatically saved to the local machine under:",
+        "  /downloads/emulated/<remote_hostname><remote_file_structure>/",
+        "",
+        "OPTIONS",
+        "  -r, -R, --recursive   Recursively copy entire directories",
+        "  --help                Display this help documentation",
+        "",
+        "EXAMPLES",
+        "  scp welcome.txt                     Copy welcome.txt back to local downloads",
+        "  scp ./home/admin/welcome.txt        Copy using relative or absolute path",
+        "  scp -r logs                         Recursively copy directory to local system"
+      ],
       exit: [
         "NAME",
         "  exit - close active terminal window or disconnect SSH session",
@@ -661,11 +685,67 @@ export class TerminalApp {
         "  logout",
         "",
         "DESCRIPTION",
-        "  If connected to a remote host via SSH, terminates the remote session and closes the connection.",
-        "  If on the local system, ends the active user session and returns to that system's login screen.",
+        "  Ends the active session on the current system (local or remote SSH host) and returns",
+        "  to that specific system's login screen.",
         "",
         "EXAMPLES",
         "  logout"
+      ],
+      usermod: [
+        "NAME",
+        "  usermod - modify user group memberships in /etc/group/system_groups.reg",
+        "",
+        "SYNOPSIS",
+        "  usermod -aG <GROUP> <USER>",
+        "  usermod -rm <GROUP> <USER>",
+        "",
+        "DESCRIPTION",
+        "  Modifies user group memberships in the virtual registry (/etc/group/system_groups.reg).",
+        "  Requires write permission to /etc/group/system_groups.reg or administrative/sudo privileges.",
+        "  Users cannot be removed from their primary group.",
+        "",
+        "MODIFIERS & OPTIONS",
+        "  -aG, -a -G      Append user to group",
+        "  -rm, -r, -d     Remove user from group",
+        "  --help          Display this help manual",
+        "",
+        "EXAMPLES",
+        "  usermod -aG admin test_user",
+        "  usermod -rm admin test_user"
+      ],
+      groups: [
+        "NAME",
+        "  groups - print the groups a user is in",
+        "",
+        "SYNOPSIS",
+        "  groups [USER]",
+        "",
+        "DESCRIPTION",
+        "  Prints group memberships for the specified user or current active user from system_groups.reg.",
+        "",
+        "EXAMPLES",
+        "  groups",
+        "  groups test_user",
+        "  groups steve"
+      ],
+      id: [
+        "NAME",
+        "  id - print real and effective user and group IDs",
+        "",
+        "SYNOPSIS",
+        "  id [OPTIONS] [USER]",
+        "",
+        "MODIFIERS & OPTIONS",
+        "  -u             Print only the effective user ID",
+        "  -g             Print only the effective group ID",
+        "  -G             Print all group IDs",
+        "  -n             Print names instead of numbers for -u/-g",
+        "  --help         Display this help manual",
+        "",
+        "EXAMPLES",
+        "  id",
+        "  id -u -n",
+        "  id test_user"
       ],
       reboot: [
         "NAME",
@@ -1021,6 +1101,12 @@ export class TerminalApp {
 
   getActiveGroups() {
     const user = this.getActiveUser();
+    if (this.fileSystem && typeof this.fileSystem.getUserGroups === "function") {
+      const groups = this.fileSystem.getUserGroups(user);
+      if (groups && groups.length > 0) {
+        return groups;
+      }
+    }
     const isAdmin = user === "root" ||
                     user === "admin" ||
                     (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
@@ -1055,6 +1141,17 @@ export class TerminalApp {
 
   handleKey(event) {
     if (event.altKey || event.ctrlKey || event.metaKey) {
+      if (event.ctrlKey && (event.key === "v" || event.key === "V")) {
+        event.preventDefault();
+        navigator.clipboard?.readText().then((text) => {
+          if (text) {
+            this.buffer += text.trim();
+            this.ui.setPrompt(this.promptPrefix, this.buffer);
+          }
+        }).catch((err) => {
+          // ignore
+        });
+      }
       return;
     }
 
@@ -1256,23 +1353,22 @@ export class TerminalApp {
         }
       }
     }
-    const pbkDir = `/home/${currentUser}/.ssh/pbk`;
-    const pbkEntries = this.fileSystem.list(pbkDir) || [];
-    for (const entry of pbkEntries) {
-      if (entry.type === "file" && entry.name.endsWith(".key")) {
-        const content = this.fileSystem.read(`${pbkDir}/${entry.name}`);
-        if (content && content.includes(`username=${targetUser}`) && content.includes(`ip=${targetIp}`)) {
-          const match = content.match(/password=(.+)/);
-          if (match) return match[1].trim();
-        }
-      }
-    }
     return null;
   }
 
   submitCommand(raw) {
     const command = raw.trim();
     this.ui.appendTerminalInput(this.promptPrefix + raw);
+
+    if (this.caesarRipSession) {
+      this.handleCaesarRipInput(raw.trim());
+      return;
+    }
+
+    if (this.caesarRipRunning) {
+      this.ui.appendTerminalLine("[*] CaesarRip dictionary audit in progress... Use 'kill " + this.caesarRipRunning.pid + "' to stop.");
+      return;
+    }
 
     if (!command) {
       return;
@@ -1520,6 +1616,19 @@ export class TerminalApp {
     const primary = parts[0].toLowerCase();
     const args = parts.slice(1);
 
+    if (this.ui.isNanoOpen?.()) {
+      if (primary === "save") {
+        this.ui.triggerNanoSave?.();
+        return;
+      }
+      if (primary === "exit") {
+        this.ui.triggerNanoExit?.();
+        return;
+      }
+      this.ui.appendTerminalLine("nano: active editing session in progress. Type 'save' to save or 'exit' to quit without saving.");
+      return;
+    }
+
     if (
       args.includes("--help") ||
       (args.length === 1 && args[0].toLowerCase() === "help") ||
@@ -1632,20 +1741,25 @@ export class TerminalApp {
     }
 
     if (primary === "logout") {
-      if (this.loggingSystem?.isInSSHSession()) {
-        const popped = this.loggingSystem.disconnectSSH();
-        const current = this.loggingSystem.getCurrentSession();
-        this.fileSystem = current.fileSystem;
-        this.currentPath = "/home/" + current.user;
-        this.updatePromptPrefix();
-        this.ui.setPrompt(this.promptPrefix, this.buffer);
-        this.ui.appendTerminalLine("Connection to " + popped.hostname + " closed.");
-        return;
+      if (this.ui.isNanoOpen?.()) {
+        this.ui.closeNano?.();
       }
-      const hostname = this.profile?.promptHost || "demicube-test";
+      if (this.caesarRipRunning) {
+        for (const t of this.caesarRipRunning.timers) clearTimeout(t);
+        this.caesarRipRunning = null;
+      }
+      this.caesarRipSession = null;
+      for (const [pid, name] of [...this.processes.entries()]) {
+        if (pid !== 1) {
+          this.processes.delete(pid);
+          this.resourceManager?.stop(pid);
+        }
+      }
+      const currentSession = this.loggingSystem?.getCurrentSession();
+      const hostname = currentSession?.hostname || this.profile?.promptHost || "demicube-test";
       this.ui.appendTerminalLine(`Logging out of ${hostname}...`);
       if (this.logoutHandler) {
-        this.logoutHandler();
+        this.logoutHandler(currentSession);
       } else {
         this.ui.showLoginScreen();
       }
@@ -1679,6 +1793,205 @@ export class TerminalApp {
       return;
     }
 
+    if (primary === "scp") {
+      if (!this.loggingSystem?.isInSSHSession()) {
+        this.ui.appendTerminalLine("scp: Not in an active SSH session.");
+        this.ui.appendTerminalLine("Use scp while connected to a remote system via SSH to copy files back to your home system.");
+        return;
+      }
+
+      let recursive = false;
+      const operands = [];
+      for (const arg of args) {
+        if (arg === "-r" || arg === "-R" || arg === "--recursive") {
+          recursive = true;
+        } else if (!arg.startsWith("-")) {
+          operands.push(arg);
+        }
+      }
+
+      if (operands.length === 0) {
+        this.ui.appendTerminalLine("Usage: scp [-r] <remote_path> ...");
+        return;
+      }
+
+      const currentSession = this.loggingSystem.getCurrentSession();
+      const remoteFs = this.fileSystem;
+      const remoteHostname = currentSession?.hostname || "remote";
+      const homeSession = this.loggingSystem.sessionChain[0];
+      const homeFs = homeSession?.fileSystem || this.loggingSystem.localFileSystem;
+      const homeHostname = homeSession?.hostname || this.loggingSystem.localSystem?.hostname || "demicube-testbox";
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+
+      const isSudo = typeof remoteFs.isUserSudoer === "function" ? remoteFs.isUserSudoer(user) : false;
+      let isRemoteAdmin = (
+        user === "root" ||
+        user === "admin" ||
+        isSudo ||
+        (Array.isArray(groups) && (groups.includes("admin") || groups.includes("root") || groups.includes("wheel") || groups.includes("sudo"))) ||
+        Boolean(this.isElevated)
+      );
+
+      if (!isRemoteAdmin) {
+        const regSys = this.loggingSystem?.networkRegistry?.getSystem?.(remoteHostname) ||
+                       this.loggingSystem?.networkRegistry?.getSystem?.(currentSession?.ip) ||
+                       this.loggingSystem?.remoteSystems?.get?.(remoteHostname);
+        if (regSys) {
+          if (regSys.user === user && (regSys.role?.toLowerCase()?.includes("admin") || regSys.role?.toLowerCase()?.includes("root"))) {
+            isRemoteAdmin = true;
+          }
+          if (Array.isArray(regSys.users)) {
+            const uDef = regSys.users.find((u) => (u.username || u.id) === user);
+            if (uDef && (uDef.role === "admin" || uDef.sudo === true || uDef.permissions?.includes("full") || uDef.groups?.includes("admin"))) {
+              isRemoteAdmin = true;
+            }
+          }
+        }
+      }
+
+      let anySuccess = false;
+
+      const sanitizeStructurePath = (p) => {
+        return p.replace(/^\.?\//, "/").replace(/\/+/g, "/");
+      };
+
+      for (const operand of operands) {
+        const sourcePath = this.resolvePath(operand);
+        const parentPath = remoteFs.getParentPath(sourcePath);
+
+        if (!isRemoteAdmin && parentPath && parentPath !== "/" && !remoteFs.hasPermission(user, groups, parentPath, "execute")) {
+          this.ui.appendTerminalLine("scp: cannot stat '" + operand + "': Permission denied");
+          continue;
+        }
+
+        const srcNode = remoteFs.resolve(sourcePath);
+
+        if (!srcNode) {
+          this.ui.appendTerminalLine("scp: cannot stat '" + operand + "': No such file or directory");
+          continue;
+        }
+
+        if (!isRemoteAdmin && !remoteFs.hasPermission(user, groups, sourcePath, "read")) {
+          this.ui.appendTerminalLine("scp: cannot open '" + operand + "' for reading: Permission denied");
+          continue;
+        }
+
+        if (srcNode.type === "directory") {
+          if (!recursive) {
+            this.ui.appendTerminalLine("scp: " + operand + ": Is a directory (not copied). Use -r to copy directories.");
+            continue;
+          }
+
+          if (!isRemoteAdmin && !remoteFs.hasPermission(user, groups, sourcePath, "execute")) {
+            this.ui.appendTerminalLine("scp: cannot open '" + operand + "' for reading: Permission denied");
+            continue;
+          }
+
+          const targetStructure = sanitizeStructurePath(sourcePath);
+          const destDirPath = homeFs.normalize("/downloads/emulated/" + remoteHostname + targetStructure);
+          const parentDestDir = homeFs.getParentPath(destDirPath);
+          homeFs.mkdir(parentDestDir, "admin", "admin", "755");
+          const parentNode = homeFs.resolve(parentDestDir);
+          const dirName = destDirPath.split("/").pop();
+
+          if (!parentNode || parentNode.type !== "directory") {
+            this.ui.appendTerminalLine("scp: failed to create destination directory on " + homeHostname);
+            continue;
+          }
+
+          const copyDirRecursive = (currentRemotePath) => {
+            const dirNode = remoteFs.resolve(currentRemotePath);
+            if (!dirNode || dirNode.type !== "directory") return null;
+
+            const destNode = {
+              type: "directory",
+              children: {},
+              owner: "admin",
+              group: "admin",
+              permissions: "755"
+            };
+
+            for (const [childName, childNode] of Object.entries(dirNode.children || {})) {
+              const childRemotePath = remoteFs.normalize(currentRemotePath + "/" + childName);
+
+              if (childNode.type === "directory") {
+                if (!isRemoteAdmin && (!remoteFs.hasPermission(user, groups, childRemotePath, "read") ||
+                                       !remoteFs.hasPermission(user, groups, childRemotePath, "execute"))) {
+                  this.ui.appendTerminalLine("scp: cannot open directory '" + childRemotePath + "': Permission denied");
+                  continue;
+                }
+                const clonedSub = copyDirRecursive(childRemotePath);
+                if (clonedSub) {
+                  destNode.children[childName] = clonedSub;
+                }
+              } else if (childNode.type === "file") {
+                if (!isRemoteAdmin && !remoteFs.hasPermission(user, groups, childRemotePath, "read")) {
+                  this.ui.appendTerminalLine("scp: cannot open '" + childRemotePath + "' for reading: Permission denied");
+                  continue;
+                }
+                const clonedFile = remoteFs.cloneNode(childNode);
+                clonedFile.owner = "admin";
+                clonedFile.group = "admin";
+                clonedFile.permissions = clonedFile.permissions || "644";
+                destNode.children[childName] = clonedFile;
+                this.loggingSystem?.logFileAccess(childRemotePath, "copied via scp to " + homeHostname, "/bin/scp");
+              }
+            }
+
+            return destNode;
+          };
+
+          const clonedDir = copyDirRecursive(sourcePath);
+          if (!clonedDir) {
+            continue;
+          }
+
+          parentNode.children[dirName] = clonedDir;
+          this.loggingSystem?.logFileAccess(sourcePath, "copied via scp -r to " + homeHostname, "/bin/scp");
+          this.ui.appendTerminalLine(`Transferred directory: ${sourcePath} -> ${homeHostname}:${destDirPath}`);
+          anySuccess = true;
+          continue;
+        }
+
+        // Single file copy
+        const lastSlash = sourcePath.lastIndexOf("/");
+        const remoteDir = lastSlash > 0 ? sourcePath.slice(0, lastSlash) : (lastSlash === 0 ? "/" : "");
+        const fileName = sourcePath.slice(lastSlash + 1);
+
+        const targetStructure = sanitizeStructurePath(remoteDir === "/" ? "" : remoteDir);
+        const destDir = homeFs.normalize("/downloads/emulated/" + remoteHostname + targetStructure);
+        homeFs.mkdir(destDir, "admin", "admin", "755");
+        const destParentNode = homeFs.resolve(destDir);
+
+        if (!destParentNode || destParentNode.type !== "directory") {
+          this.ui.appendTerminalLine("scp: failed to create destination directory: " + destDir);
+          continue;
+        }
+
+        const clonedFile = remoteFs.cloneNode(srcNode);
+        clonedFile.owner = "admin";
+        clonedFile.group = "admin";
+        clonedFile.permissions = clonedFile.permissions || "644";
+        destParentNode.children[fileName] = clonedFile;
+
+        this.loggingSystem?.logFileAccess(sourcePath, "copied via scp to " + homeHostname, "/bin/scp");
+
+        const size = clonedFile.content ? String(clonedFile.content).length : (clonedFile.format === "binary" ? 1024 : 0);
+        const sizeStr = size < 1024 ? `${size}B` : `${(size / 1024).toFixed(1)}KB`;
+        const destFilePath = homeFs.normalize(destDir + "/" + fileName);
+
+        this.ui.appendTerminalLine(`${fileName.padEnd(24)} 100%  ${sizeStr.padStart(6)}   1.4MB/s   00:00`);
+        this.ui.appendTerminalLine(`Transferred: ${sourcePath} -> ${homeHostname}:${destFilePath}`);
+        anySuccess = true;
+      }
+
+      if (anySuccess && this.filesApp) {
+        this.filesApp.start();
+      }
+      return;
+    }
+
     if (primary === "nano") {
       const target = args[0];
       if (!target) {
@@ -1695,7 +2008,7 @@ export class TerminalApp {
           this.ui.appendTerminalLine("nano: " + target + ": Is a directory");
           return;
         }
-        if (!this.fileSystem.hasPermission(user, groups, path, "read")) {
+        if (!this.fileSystem.hasPermission(user, groups, path, "write")) {
           this.ui.appendTerminalLine("nano: cannot open '" + target + "': Permission denied");
           return;
         }
@@ -1711,6 +2024,9 @@ export class TerminalApp {
       if (content === null) {
         content = "";
       }
+      const nanoPid = Math.max(...this.processes.keys(), 10) + 1;
+      this.processes.set(nanoPid, "nano");
+
       this.ui.openNano?.(
         path,
         content,
@@ -1738,6 +2054,7 @@ export class TerminalApp {
           }
         },
         () => {
+          this.processes.delete(nanoPid);
           this.ui.appendTerminalLine("Exited nano (" + path + ")");
         }
       );
@@ -1914,11 +2231,11 @@ export class TerminalApp {
       this.ui.appendTerminalLine("Text Processing & Inspection:");
       this.ui.appendTerminalLine("  grep, echo");
       this.ui.appendTerminalLine("User & System Identity:");
-      this.ui.appendTerminalLine("  whoami, id, groups, hostname, date");
+      this.ui.appendTerminalLine("  whoami, id, groups, usermod, hostname, date");
       this.ui.appendTerminalLine("Networking & Remote Access:");
-      this.ui.appendTerminalLine("  ssh, session, disconnect, zenmap, vpnguard, ifconfig, ip, route, curl");
+      this.ui.appendTerminalLine("  ssh, scp, session, disconnect, zenmap, vpnguard, ifconfig, ip, route, curl");
       this.ui.appendTerminalLine("Processes & Administration:");
-      this.ui.appendTerminalLine("  ps, kill, sudo, reboot, install, python3");
+      this.ui.appendTerminalLine("  ps, kill, sudo, reboot, install, logout, exit, python3");
       this.ui.appendTerminalLine("Desktop & Window Control:");
       this.ui.appendTerminalLine("  terminal, files, settings, task-manager, music-player, codepad+, clawder-python, snap, focus, clear, exit");
       this.ui.appendTerminalLine("");
@@ -1949,40 +2266,158 @@ export class TerminalApp {
     }
 
     if (primary === "id") {
-      const user = this.getActiveUser();
-      const isAdmin = user === "admin" || user === "root" || (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
-      const uid = user === "root" ? 0 : (isAdmin ? 1000 : 1001);
-      const gid = user === "root" ? 0 : (isAdmin ? 1000 : 100);
-      const groupName = user === "root" ? "root" : (isAdmin ? "admin" : "users");
-      const groupsStr = user === "root"
-        ? "0(root)"
-        : (isAdmin ? "1000(admin),4(adm),27(sudo),10(wheel)" : `100(users),1001(${user})`);
+      const targetUser = args.find((a) => !a.startsWith("-")) || this.getActiveUser();
+      const userGroups = (this.fileSystem && typeof this.fileSystem.getUserGroups === "function")
+        ? this.fileSystem.getUserGroups(targetUser)
+        : (targetUser === "admin" || targetUser === "root" ? ["admin", "sudo"] : [targetUser]);
+      const uid = targetUser === "root" ? 0 : (targetUser === "admin" ? 1000 : 1001);
+      const gid = targetUser === "root" ? 0 : (targetUser === "admin" ? 1000 : 1001);
+      const primaryGroup = userGroups[0] || targetUser;
+      const groupsStr = userGroups.map((g, idx) => {
+        const idNum = g === "root" ? 0 : (g === "admin" ? 1000 : 1000 + idx);
+        return `${idNum}(${g})`;
+      }).join(",");
 
       if (args.includes("-u")) {
-        this.ui.appendTerminalLine(args.includes("-n") ? user : String(uid));
+        this.ui.appendTerminalLine(args.includes("-n") ? targetUser : String(uid));
       } else if (args.includes("-g")) {
-        this.ui.appendTerminalLine(args.includes("-n") ? groupName : String(gid));
+        this.ui.appendTerminalLine(args.includes("-n") ? primaryGroup : String(gid));
       } else if (args.includes("-G")) {
-        this.ui.appendTerminalLine(user === "root" ? "0" : (isAdmin ? "1000 4 27 10" : "100 1001"));
+        this.ui.appendTerminalLine(userGroups.map((g, idx) => (g === "root" ? "0" : String(1000 + idx))).join(" "));
       } else {
-        this.ui.appendTerminalLine(`uid=${uid}(${user}) gid=${gid}(${groupName}) groups=${groupsStr}`);
+        this.ui.appendTerminalLine(`uid=${uid}(${targetUser}) gid=${gid}(${primaryGroup}) groups=${groupsStr}`);
       }
       return;
     }
 
     if (primary === "groups") {
-      const user = this.getActiveUser();
-      const isAdmin = user === "admin" || user === "root" || (this.loginManager?.currentUser?.username === user && this.loginManager?.isAdmin?.());
-      this.ui.appendTerminalLine(user === "root" ? "root : root" : (isAdmin ? `${user} : admin adm sudo wheel` : `${user} : users ${user}`));
+      const targetUser = args.find((a) => !a.startsWith("-")) || this.getActiveUser();
+      const userGroups = (this.fileSystem && typeof this.fileSystem.getUserGroups === "function")
+        ? this.fileSystem.getUserGroups(targetUser)
+        : (targetUser === "admin" || targetUser === "root" ? ["admin", "sudo"] : [targetUser]);
+      this.ui.appendTerminalLine(`${targetUser} : ${userGroups.join(" ")}`);
       return;
     }
 
-    if (primary === "python3" || primary === "python") {
-      const target = args[0];
+    if (primary === "usermod") {
+      const activeUser = this.getActiveUser();
+      let mode = null;
+      let groupName = null;
+      let targetUser = null;
+
+      for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (arg === "-aG" || arg === "-Ga") {
+          mode = "append";
+          groupName = args[++i];
+        } else if (arg === "-rm" || arg === "-r" || arg === "-d") {
+          mode = "remove";
+          groupName = args[++i];
+        } else if (arg === "-a") {
+          if (args[i + 1] === "-G") {
+            mode = "append";
+            i++;
+            groupName = args[++i];
+          }
+        } else if (arg === "-G") {
+          if (mode === "append" && !groupName) {
+            groupName = args[++i];
+          }
+        } else if (!arg.startsWith("-")) {
+          if (!groupName) {
+            groupName = arg;
+          } else if (!targetUser) {
+            targetUser = arg;
+          }
+        }
+      }
+
+      if (!mode || !groupName || !targetUser) {
+        this.ui.appendTerminalLine("Usage: usermod -aG <group> <user>  or  usermod -rm <group> <user>");
+        return;
+      }
+
+      if (!this.fileSystem || typeof this.fileSystem.modifyUserGroup !== "function") {
+        this.ui.appendTerminalLine("usermod: filesystem group management unavailable");
+        return;
+      }
+
+      const res = this.fileSystem.modifyUserGroup(mode, groupName, targetUser, activeUser);
+      if (!res.success) {
+        this.ui.appendTerminalLine(`usermod: ${res.error}`);
+        return;
+      }
+
+      if (mode === "append") {
+        this.ui.appendTerminalLine(`Added user '${targetUser}' to group '${groupName}'.`);
+      } else {
+        this.ui.appendTerminalLine(`Removed user '${targetUser}' from group '${groupName}'.`);
+      }
+      this.loggingSystem?.logFileAccess?.("/etc/group/system_groups.reg", "modified", "/bin/usermod");
+      return;
+    }
+
+    if (primary === "python3" || primary === "python" || primary === "./caesarrip.py" || primary === "caesarrip.py") {
+      let target = args[0];
+      if (primary === "./caesarrip.py" || primary === "caesarrip.py") {
+        target = "CaesarRip.py";
+      }
       if (!target) {
         this.ui.appendTerminalLine("Usage: python3 <file.py>");
         return;
       }
+
+      const isCaesarRip =
+        target.toLowerCase() === "caesarrip.py" ||
+        target.toLowerCase().endsWith("/caesarrip.py") ||
+        target.toLowerCase() === "caesarrip.txt" ||
+        target.toLowerCase().endsWith("/caesarrip.txt");
+
+      if (isCaesarRip) {
+        const resolvedPath = this.resolveFlexiblePath(target);
+        let scriptNode = this.fileSystem.resolve(resolvedPath);
+        if (!scriptNode) {
+          const alt1 = this.resolvePath("CaesarRip.py");
+          const alt2 = this.resolvePath("CaesarRip.txt");
+          const alt3 = "/documents/clawder-python/CaesarRip.py";
+          const alt4 = "/documents/clawder-python/CaesarRip.txt";
+          if (this.fileSystem.resolve(alt1)) scriptNode = this.fileSystem.resolve(alt1);
+          else if (this.fileSystem.resolve(alt2)) scriptNode = this.fileSystem.resolve(alt2);
+          else if (this.fileSystem.resolve(alt3)) scriptNode = this.fileSystem.resolve(alt3);
+          else if (this.fileSystem.resolve(alt4)) scriptNode = this.fileSystem.resolve(alt4);
+        }
+
+        if (!scriptNode) {
+          this.ui.appendTerminalLine("python3: can't open file '" + target + "': [Errno 2] No such file or directory");
+          return;
+        }
+
+        const cliArgs = (primary === "./caesarrip.py" || primary === "caesarrip.py") ? args : args.slice(1);
+        if (cliArgs.length >= 2) {
+          const targetSh = this.resolveFlexiblePath(cliArgs[0]);
+          const wordlist = this.resolveFlexiblePath(cliArgs[1]);
+          if (!this.fileSystem.resolve(targetSh)) {
+            this.ui.appendTerminalLine(`[!] File Error: Target file '${cliArgs[0]}' not found.`);
+            return;
+          }
+          if (!this.fileSystem.resolve(wordlist)) {
+            this.ui.appendTerminalLine(`[!] File Error: Wordlist '${cliArgs[1]}' not found.`);
+            return;
+          }
+          this.startCaesarRipAttack(targetSh, wordlist);
+          return;
+        }
+
+        this.caesarRipSession = {
+          step: "target_sh",
+          targetShPath: null
+        };
+        this.ui.appendTerminalLine("[*] CaesarRip v1.4 - Cryptographic Hash & Key Recovery Suite");
+        this.ui.appendTerminalLine("[*] Initializing virtual dictionary auditing runtime...");
+        this.ui.appendTerminalLine("Enter location of the .sh file to be cracked: ");
+        return;
+      }
+
       const path = this.resolvePath(target);
       const node = this.fileSystem.resolve(path);
       if (!node) {
@@ -2032,6 +2467,11 @@ export class TerminalApp {
       }
       const name = this.processes.get(pid);
       this.processes.delete(pid);
+      if (this.caesarRipRunning && this.caesarRipRunning.pid === pid) {
+        for (const t of this.caesarRipRunning.timers) clearTimeout(t);
+        this.caesarRipRunning = null;
+        this.ui.appendTerminalLine(`[CaesarRip PID ${pid} terminated]`);
+      }
       this.resourceManager?.stop(pid);
       if (this.syncProcesses) this.syncProcesses();
       const windowId = this.processWindows.get(pid);
@@ -2522,7 +2962,7 @@ export class TerminalApp {
       }
       this.currentPath = path;
       this.updatePromptPrefix();
-      if (this.filesApp) this.filesApp.setPath(path, true);
+      if (this.filesApp?.setPath) this.filesApp.setPath(path, true);
       return;
     }
 
@@ -3050,4 +3490,262 @@ export class TerminalApp {
       this.ui.appendTerminalLine(line);
     }
   }
+
+  resolveFlexiblePath(inputPath) {
+    if (!inputPath) return "";
+    const clean = inputPath.trim();
+    const p1 = this.resolvePath(clean);
+    if (this.fileSystem.resolve(p1)) return p1;
+
+    const fromRoot = clean.startsWith("./") ? "/" + clean.slice(2) : (clean.startsWith("/") ? clean : "/" + clean);
+    const p2 = this.fileSystem.normalize(fromRoot);
+    if (this.fileSystem.resolve(p2)) return p2;
+
+    const p3 = this.fileSystem.normalize(clean);
+    if (this.fileSystem.resolve(p3)) return p3;
+
+    const p4 = this.fileSystem.normalize("/downloads/emulated/test-laptop/home/admin/.ssh/pbk/" + clean);
+    if (this.fileSystem.resolve(p4)) return p4;
+
+    const p5 = this.fileSystem.normalize("/documents/clawder-python/" + clean);
+    if (this.fileSystem.resolve(p5)) return p5;
+
+    const p6 = this.fileSystem.normalize("/home/admin/.ssh/pbk/" + clean);
+    if (this.fileSystem.resolve(p6)) return p6;
+
+    return p1;
+  }
+
+  handleCaesarRipInput(input) {
+    if (!this.caesarRipSession) return;
+    const trimmed = input.trim();
+    if (trimmed.toLowerCase() === "exit" || trimmed.toLowerCase() === "quit" || trimmed === "^C") {
+      this.ui.appendTerminalLine("[*] CaesarRip operation aborted.");
+      this.caesarRipSession = null;
+      this.updatePromptPrefix();
+      this.ui.setPrompt(this.promptPrefix, this.buffer);
+      return;
+    }
+
+    if (!trimmed) {
+      if (this.caesarRipSession.step === "target_sh") {
+        this.ui.appendTerminalLine("Enter location of the .sh file to be cracked: ");
+      } else {
+        this.ui.appendTerminalLine("Enter location of the word list to use for cracking: ");
+      }
+      return;
+    }
+
+    if (this.caesarRipSession.step === "target_sh") {
+      const resolvedSh = this.resolveFlexiblePath(trimmed);
+      const node = this.fileSystem.resolve(resolvedSh);
+      if (!node) {
+        this.ui.appendTerminalLine(`[!] File Error: Target file '${trimmed}' not found.`);
+        this.ui.appendTerminalLine("Enter location of the .sh file to be cracked: ");
+        return;
+      }
+      if (node.type === "directory") {
+        this.ui.appendTerminalLine(`[!] Error: '${trimmed}' is a directory, not a .sh file.`);
+        this.ui.appendTerminalLine("Enter location of the .sh file to be cracked: ");
+        return;
+      }
+      const user = this.getActiveUser();
+      const groups = this.getActiveGroups();
+      if (!this.fileSystem.hasPermission(user, groups, resolvedSh, "read")) {
+        this.ui.appendTerminalLine(`[!] Permission Denied: Unable to read '${trimmed}'.`);
+        this.caesarRipSession = null;
+        this.updatePromptPrefix();
+        this.ui.setPrompt(this.promptPrefix, this.buffer);
+        return;
+      }
+
+      this.caesarRipSession.targetShPath = resolvedSh;
+      this.caesarRipSession.step = "wordlist";
+      this.ui.appendTerminalLine("Enter location of the word list to use for cracking: ");
+      return;
+    }
+
+    if (this.caesarRipSession.step === "wordlist") {
+      let resolvedWl = this.resolveFlexiblePath(trimmed);
+      let node = this.fileSystem.resolve(resolvedWl);
+      if (!node) {
+        const cand1 = "/documents/clawder-python/" + trimmed;
+        const cand2 = "/documents/clawder-python/wordlist.txt";
+        if (this.fileSystem.resolve(cand1)) {
+          resolvedWl = cand1;
+          node = this.fileSystem.resolve(cand1);
+        } else if (this.fileSystem.resolve(cand2)) {
+          resolvedWl = cand2;
+          node = this.fileSystem.resolve(cand2);
+        }
+      }
+
+      if (!node) {
+        this.ui.appendTerminalLine(`[!] File Error: Wordlist '${trimmed}' not found.`);
+        this.ui.appendTerminalLine("Enter location of the word list to use for cracking: ");
+        return;
+      }
+
+      const targetShPath = this.caesarRipSession.targetShPath;
+      this.caesarRipSession = null;
+      this.startCaesarRipAttack(targetShPath, resolvedWl);
+      return;
+    }
+  }
+
+  startCaesarRipAttack(targetShPath, wordlistPath) {
+    if (this.caesarRipRunning?.timers) {
+      for (const t of this.caesarRipRunning.timers) clearTimeout(t);
+    }
+
+    const shContent = this.fileSystem.read(targetShPath) || "";
+    const parsed = parseHashedKeyContent(shContent);
+
+    let targetUser = parsed?.username || "admin";
+    let targetIp = parsed?.ip || "192.168.56.108";
+    let targetPassword = parsed?.password;
+
+    if (!targetPassword) {
+      if (targetShPath.includes("test-laptop") || targetIp === "192.168.56.108") {
+        targetPassword = "k8L3m9";
+        targetUser = "admin";
+        targetIp = "192.168.56.108";
+      } else if (targetUser === "admin") {
+        targetPassword = "3tHr90";
+      } else if (targetUser === "test_user") {
+        targetPassword = "password123";
+      } else if (targetUser === "steve") {
+        targetPassword = "password";
+      } else {
+        targetPassword = "password";
+      }
+    }
+
+    const targetHash = sha256(targetPassword);
+
+    const wlContent = this.fileSystem.read(wordlistPath) || DEFAULT_WORDLIST;
+    let words = wlContent
+      .split(/\r?\n/)
+      .map((w) => w.trim())
+      .filter((w) => w && !w.startsWith("#"));
+
+    const commonPasswords = ["password", "123456", "admin", "root", "dragon", "letmein", "shadow", "welcome", "password123", "demicube"];
+    for (const cp of commonPasswords) {
+      if (!words.includes(cp)) words.unshift(cp);
+    }
+    if (!words.includes(targetPassword)) {
+      words.push(targetPassword);
+    }
+
+    const pid = Math.max(...this.processes.keys(), 10) + 1;
+    this.processes.set(pid, "python3 CaesarRip.py");
+    this.caesarRipRunning = { pid, timers: [] };
+
+    this.ui.appendTerminalLine("");
+    this.ui.appendTerminalLine("[*] ========================================================");
+    this.ui.appendTerminalLine("[*] CaesarRip v1.4 - Cryptographic Hash & Key Recovery Suite");
+    this.ui.appendTerminalLine("[*] ========================================================");
+    this.ui.appendTerminalLine(`[*] Target Vault:    ${targetShPath}`);
+    this.ui.appendTerminalLine(`[*] Target Identity: ${targetUser}@${targetIp}`);
+    this.ui.appendTerminalLine(`[*] Target Digest:   ${targetHash}`);
+    this.ui.appendTerminalLine(`[*] Wordlist:        ${wordlistPath} (${words.length} candidates loaded)`);
+    this.ui.appendTerminalLine("[*] Mode:            SHA-256 Dictionary Audit [Multi-core simulated]");
+    this.ui.appendTerminalLine("[*] Commencing dictionary audit attack...");
+    this.ui.appendTerminalLine("");
+
+    const timers = [];
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w0 = words[0] || "password";
+      this.ui.appendTerminalLine(`[+] [Attempt 1/${words.length}] Testing: '${w0}' -> ${sha256(w0).slice(0, 16)}... [FAILED]`);
+    }, 1500));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w1 = words[1] || "123456";
+      const w2 = words[2] || "admin";
+      this.ui.appendTerminalLine(`[+] [Attempt 2/${words.length}] Testing: '${w1}' -> ${sha256(w1).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine(`[+] [Attempt 3/${words.length}] Testing: '${w2}' -> ${sha256(w2).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine("[*] Progress: [████░░░░░░░░░░░░░░░░] 20% | Hash Rate: 1,380 H/s");
+    }, 3200));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w3 = words[3] || "root";
+      const w4 = words[4] || "dragon";
+      this.ui.appendTerminalLine(`[+] [Attempt 4/${words.length}] Testing: '${w3}' -> ${sha256(w3).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine(`[+] [Attempt 5/${words.length}] Testing: '${w4}' -> ${sha256(w4).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine("[*] Progress: [████████░░░░░░░░░░░░] 40% | Hash Rate: 1,440 H/s");
+    }, 5200));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w5 = words[5] || "letmein";
+      const w6 = words[6] || "shadow";
+      this.ui.appendTerminalLine(`[+] [Attempt 6/${words.length}] Testing: '${w5}' -> ${sha256(w5).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine(`[+] [Attempt 7/${words.length}] Testing: '${w6}' -> ${sha256(w6).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine("[*] Progress: [████████████░░░░░░░░] 60% | Hash Rate: 1,490 H/s");
+    }, 7200));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w7 = words[7] || "welcome";
+      const w8 = words[8] || "password123";
+      this.ui.appendTerminalLine(`[+] [Attempt 8/${words.length}] Testing: '${w7}' -> ${sha256(w7).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine(`[+] [Attempt 9/${words.length}] Testing: '${w8}' -> ${sha256(w8).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine("[*] Progress: [████████████████░░░░] 80% | Hash Rate: 1,510 H/s");
+    }, 9200));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+      const w9 = words[9] || "demicube";
+      this.ui.appendTerminalLine(`[+] [Attempt 10/${words.length}] Testing: '${w9}' -> ${sha256(w9).slice(0, 16)}... [FAILED]`);
+      this.ui.appendTerminalLine("[*] Progress: [████████████████████] 98% | Hash Rate: 1,540 H/s");
+    }, 11000));
+
+    timers.push(setTimeout(() => {
+      if (!this.caesarRipRunning) return;
+
+      this.ui.appendTerminalLine(`[+] [Attempt 11/${words.length}] Testing: '${targetPassword}' -> ${targetHash} [MATCH FOUND!]`);
+      this.ui.appendTerminalLine("");
+      this.ui.appendTerminalLine("============================================================");
+      this.ui.appendTerminalLine("[***] CRACK COMPLETED: PASSWORD IDENTIFIED [***]");
+      this.ui.appendTerminalLine("============================================================");
+      this.ui.appendTerminalLine(`[*] Target User:     ${targetUser}`);
+      this.ui.appendTerminalLine(`[*] Target System:   ${targetIp}`);
+      this.ui.appendTerminalLine(`[*] Plain Password:  ${targetPassword}`);
+      this.ui.appendTerminalLine(`[*] Digest Hash:     ${targetHash}`);
+      this.ui.appendTerminalLine("------------------------------------------------------------");
+
+      const keyFilePath = targetShPath.replace(/\.sh$/, ".key");
+      const keyContent = [
+        "[ssh_key]",
+        `username=${targetUser}`,
+        `ip=${targetIp}`,
+        `password=${targetPassword}`,
+        ""
+      ].join("\n");
+
+      this.fileSystem.write(keyFilePath, keyContent, "admin", "admin", "600");
+      this.loggingSystem?.logFileAccess?.(keyFilePath, "created", "/documents/clawder-python/CaesarRip.py");
+
+      if (this.filesApp?.start) {
+        this.filesApp.start();
+      }
+
+      this.ui.appendTerminalLine(`[✓] Mirror key successfully unlocked and written to:`);
+      this.ui.appendTerminalLine(`    ${keyFilePath}`);
+      this.ui.appendTerminalLine("============================================================");
+
+      this.processes.delete(pid);
+      this.caesarRipRunning = null;
+      this.updatePromptPrefix();
+      this.ui.setPrompt(this.promptPrefix, this.buffer);
+      this.ui.focusInput?.();
+    }, 12500));
+
+    this.caesarRipRunning.timers = timers;
+  }
 }
+

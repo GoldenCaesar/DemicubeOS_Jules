@@ -7,7 +7,8 @@
       "role": "admin",
       "permissions": ["full"],
       "homeDir": "/home/admin",
-      "systemId": "192.168.56.108"
+      "systemId": "192.168.56.108",
+      "groups": ["admin"]
     },
     {
       "id": "steve",
@@ -15,8 +16,21 @@
       "password": "password",
       "role": "user",
       "permissions": ["user"],
-      "homeDir": "/home/admin",
-      "systemId": "192.168.56.108"
+      "homeDir": "/home/steve",
+      "systemId": "192.168.56.108",
+      "groups": ["steve"]
+    }
+  ],
+  "groups": [
+    {
+      "name": "admin",
+      "sudo": true,
+      "users": ["admin"]
+    },
+    {
+      "name": "steve",
+      "sudo": false,
+      "users": ["steve"]
     }
   ]
 }

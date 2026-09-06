@@ -5,11 +5,8 @@ export function createDesktopShell(rootElement, profile) {
     "<main class=\"shell\">",
     "  <section id=\"splash-screen\" class=\"splash-screen hidden\" aria-label=\"Splash Screen\">",
     "    <div class=\"splash-media-wrapper\">",
-    "      <video id=\"splash-video\" class=\"splash-video\" playsinline muted autoplay preload=\"auto\">",
-    "        <source src=\"/src/media/demicubeOS.mp4\" type=\"video/mp4\">",
-    "        <source src=\"./src/media/demicubeOS.mp4\" type=\"video/mp4\">",
-    "      </video>",
-    "      <div id=\"splash-fallback\" class=\"splash-fallback-overlay\">",
+    "      <video id=\"splash-video\" class=\"splash-video\" src=\"./src/media/demicubeOS.mp4\" playsinline muted autoplay preload=\"auto\"></video>",
+    "      <div id=\"splash-fallback\" class=\"splash-fallback-overlay hidden\">",
     "        <div class=\"splash-brand-cube\">",
     "          <div class=\"splash-cube-wireframe\">",
     "            <div class=\"cube-face cube-front\"></div>",
@@ -26,7 +23,8 @@ export function createDesktopShell(rootElement, profile) {
     "      </div>",
     "    </div>",
     "    <div class=\"splash-bottom-bar\">",
-    "      <span class=\"splash-hint-text\">PRESS ANY KEY OR CLICK TO SKIP</span>",
+    "      <button type=\"button\" id=\"splash-audio-btn\" class=\"splash-audio-btn\">🔊 UNMUTE</button>",
+    "      <span class=\"splash-hint-text\">PRESS ESC OR CLICK SKIP TO BYPASS</span>",
     "      <button type=\"button\" id=\"splash-skip-btn\" class=\"splash-skip-btn\">SKIP INTRO ❯</button>",
     "    </div>",
     "  </section>",
@@ -256,10 +254,8 @@ export function createDesktopShell(rootElement, profile) {
     "        <textarea id=\"nano-editor-textarea\" class=\"nano-textarea\" spellcheck=\"false\"></textarea>",
     "        <div id=\"nano-status-bar\" class=\"nano-status-bar\">[ Read 0 lines ]</div>",
     "        <div class=\"nano-footer\">",
-    "          <button type=\"button\" id=\"nano-btn-writeout\" class=\"nano-shortcut\" title=\"Save file (^O)\"><span>^O</span> WriteOut</button>",
-    "          <button type=\"button\" id=\"nano-btn-exit\" class=\"nano-shortcut\" title=\"Exit editor (^X)\"><span>^X</span> Exit</button>",
-    "          <button type=\"button\" id=\"nano-btn-cut\" class=\"nano-shortcut\" title=\"Cut line (^K)\"><span>^K</span> Cut Line</button>",
-    "          <button type=\"button\" id=\"nano-btn-help\" class=\"nano-shortcut\" title=\"Help (^G)\"><span>^G</span> Help</button>",
+    "          <button type=\"button\" id=\"nano-btn-save\" class=\"nano-shortcut\">Save</button>",
+    "          <button type=\"button\" id=\"nano-btn-exit\" class=\"nano-shortcut\">Exit</button>",
     "        </div>",
     "      </div>",
     "      <div class=\"terminal-input-row\">",
@@ -283,6 +279,7 @@ export function createDesktopShell(rootElement, profile) {
   const bootScreen = document.getElementById("boot-screen");
   const splashScreen = document.getElementById("splash-screen");
   const splashVideo = document.getElementById("splash-video");
+  const splashAudioBtn = document.getElementById("splash-audio-btn");
   const splashSkipBtn = document.getElementById("splash-skip-btn");
   const splashFallback = document.getElementById("splash-fallback");
   const mainMenuScreen = document.getElementById("main-menu-screen");
@@ -354,62 +351,65 @@ export function createDesktopShell(rootElement, profile) {
   const nanoTextarea = document.getElementById("nano-editor-textarea");
   const nanoStatusBar = document.getElementById("nano-status-bar");
   const nanoModified = document.getElementById("nano-modified");
-  const nanoBtnWriteout = document.getElementById("nano-btn-writeout");
+  const nanoBtnSave = document.getElementById("nano-btn-save");
   const nanoBtnExit = document.getElementById("nano-btn-exit");
-  const nanoBtnCut = document.getElementById("nano-btn-cut");
-  const nanoBtnHelp = document.getElementById("nano-btn-help");
 
   let nanoCurrentPath = "";
   let nanoSaveHandler = null;
   let nanoExitHandler = null;
 
+  document.addEventListener("copy", (event) => {
+    const active = document.activeElement;
+    const isFilesUrl = active && (active.id === "files-url" || active.closest("#files-window"));
+    if (!isFilesUrl) {
+      event.preventDefault();
+    }
+  });
+
+  document.addEventListener("paste", (event) => {
+    const active = document.activeElement;
+    const isAllowed = active && (
+      active.tagName === "INPUT" ||
+      active.tagName === "TEXTAREA" ||
+      active.id === "files-url" ||
+      active.id === "nano-editor-textarea" ||
+      active.closest(".terminal-window") ||
+      active.closest(".codepad-window")
+    );
+    if (!isAllowed) {
+      event.preventDefault();
+    }
+  });
+
+  function triggerNanoSave() {
+    if (nanoSaveHandler && nanoTextarea) {
+      const lines = nanoTextarea.value.split("\n").length;
+      nanoSaveHandler(nanoCurrentPath, nanoTextarea.value);
+      if (nanoModified) nanoModified.textContent = "";
+      if (nanoStatusBar) nanoStatusBar.textContent = `[ Wrote ${lines} lines ]`;
+    }
+  }
+
+  function triggerNanoExit() {
+    closeNano();
+    if (nanoExitHandler) nanoExitHandler();
+  }
+
   if (nanoTextarea) {
     nanoTextarea.addEventListener("input", () => {
-      nanoModified.textContent = "Modified";
+      if (nanoModified) nanoModified.textContent = "Modified";
     });
 
-    const triggerNanoSave = () => {
-      if (nanoSaveHandler) {
-        const lines = nanoTextarea.value.split("\n").length;
-        nanoSaveHandler(nanoCurrentPath, nanoTextarea.value);
-        nanoModified.textContent = "";
-        nanoStatusBar.textContent = `[ Wrote ${lines} lines ]`;
-      }
-    };
-
-    const triggerNanoExit = () => {
-      closeNano();
-      if (nanoExitHandler) nanoExitHandler();
-    };
-
-    nanoBtnWriteout?.addEventListener("click", triggerNanoSave);
+    nanoBtnSave?.addEventListener("click", triggerNanoSave);
     nanoBtnExit?.addEventListener("click", triggerNanoExit);
-    nanoBtnCut?.addEventListener("click", () => {
-      const pos = nanoTextarea.selectionStart;
-      const val = nanoTextarea.value;
-      const start = val.lastIndexOf("\n", pos - 1) + 1;
-      let end = val.indexOf("\n", pos);
-      if (end === -1) end = val.length;
-      else end += 1;
-      nanoTextarea.value = val.slice(0, start) + val.slice(end);
-      nanoTextarea.setSelectionRange(start, start);
-      nanoModified.textContent = "Modified";
-      nanoStatusBar.textContent = "[ Cut 1 line ]";
-    });
-    nanoBtnHelp?.addEventListener("click", () => {
-      nanoStatusBar.textContent = "[ Nano Help: ^O WriteOut / Save, ^X Exit, ^K Cut Line ]";
-    });
 
     nanoTextarea.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && (e.key === "o" || e.key === "O")) {
+      if (e.ctrlKey && (e.key === "s" || e.key === "S" || e.key === "o" || e.key === "O")) {
         e.preventDefault();
         triggerNanoSave();
       } else if (e.ctrlKey && (e.key === "x" || e.key === "X")) {
         e.preventDefault();
         triggerNanoExit();
-      } else if (e.ctrlKey && (e.key === "k" || e.key === "K")) {
-        e.preventDefault();
-        nanoBtnCut?.click();
       }
     });
   }
@@ -545,59 +545,73 @@ export function createDesktopShell(rootElement, profile) {
     menuCanvasController.stop();
 
     if (splashFallback) {
-      splashFallback.classList.remove("fade-out", "hidden");
+      splashFallback.classList.add("hidden");
     }
 
-    let videoPlaying = false;
-    const markVideoPlaying = () => {
-      if (!videoPlaying && splashVideo && splashVideo.currentTime > 0.05) {
-        videoPlaying = true;
-        if (splashFallback) {
-          splashFallback.classList.add("fade-out");
-          setTimeout(() => {
-            if (splashFallback && videoPlaying) splashFallback.classList.add("hidden");
-          }, 400);
-        }
-        if (splashFallbackTimer) {
-          clearTimeout(splashFallbackTimer);
-          splashFallbackTimer = null;
-        }
-      }
-    };
-
     if (splashVideo) {
-      try {
-        splashVideo.currentTime = 0;
-      } catch (e) {}
-
-      splashVideo.removeEventListener("timeupdate", markVideoPlaying);
-      splashVideo.addEventListener("timeupdate", markVideoPlaying);
-      splashVideo.addEventListener("playing", markVideoPlaying);
+      splashVideo.muted = true;
+      splashVideo.defaultMuted = true;
+      splashVideo.playsInline = true;
+      splashVideo.currentTime = 0;
+      splashVideo.load();
 
       const playPromise = splashVideo.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn("[DemicubeOS] Video autoplay prevented or empty stream:", err?.message || err);
+        playPromise.then(() => {
+          if (splashAudioBtn) splashAudioBtn.textContent = "🔊 UNMUTE";
+        }).catch((err) => {
+          console.warn("[DemicubeOS] Video autoplay prevented, user click required:", err?.message || err);
+          if (splashAudioBtn) {
+            splashAudioBtn.textContent = "▶ PLAY INTRO";
+            splashAudioBtn.classList.add("pulse");
+          }
         });
       }
     }
 
-    // Safety fallback timer: runs animated cyber cube intro if video file is empty/missing
+    // Safety fallback timer: only activate fallback cube animation if video stalls or fails to advance
     splashFallbackTimer = setTimeout(() => {
-      if (!videoPlaying) {
-        endSplash();
+      if (splashActive && (!splashVideo || splashVideo.currentTime === 0 || splashVideo.paused)) {
+        console.warn("[DemicubeOS] Video did not start within timeout, activating fallback intro.");
+        if (splashFallback) {
+          splashFallback.classList.remove("hidden");
+        }
+        splashFallbackTimer = setTimeout(endSplash, 3500);
       }
-    }, 3500);
+    }, 6000);
   }
 
   if (splashVideo) {
     splashVideo.addEventListener("ended", () => {
       endSplash();
     });
-    splashVideo.addEventListener("error", () => {
-      console.warn("[DemicubeOS] src/media/demicubeOS.mp4 could not be decoded. Using cyber animation fallback.");
-      if (splashActive && !splashFallbackTimer) {
-        splashFallbackTimer = setTimeout(endSplash, 3200);
+    splashVideo.addEventListener("error", (err) => {
+      console.warn("[DemicubeOS] src/media/demicubeOS.mp4 decoding error. Using fallback animation.", err);
+      if (splashActive && splashFallback) {
+        splashFallback.classList.remove("hidden");
+        if (!splashFallbackTimer) {
+          splashFallbackTimer = setTimeout(endSplash, 3500);
+        }
+      }
+    });
+  }
+
+  if (splashAudioBtn) {
+    splashAudioBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playTerminalBeep("click");
+      if (!splashVideo) return;
+      if (splashVideo.paused) {
+        splashVideo.muted = false;
+        splashVideo.play().catch(() => {});
+        splashAudioBtn.textContent = "🔇 MUTE";
+        splashAudioBtn.classList.remove("pulse");
+      } else if (splashVideo.muted) {
+        splashVideo.muted = false;
+        splashAudioBtn.textContent = "🔇 MUTE";
+      } else {
+        splashVideo.muted = true;
+        splashAudioBtn.textContent = "🔊 UNMUTE";
       }
     });
   }
@@ -611,14 +625,25 @@ export function createDesktopShell(rootElement, profile) {
   }
 
   if (splashScreen) {
-    splashScreen.addEventListener("click", () => {
-      endSplash();
+    splashScreen.addEventListener("click", (e) => {
+      if (e.target.closest("#splash-skip-btn") || e.target.closest("#splash-audio-btn")) {
+        return;
+      }
+      if (splashVideo && splashVideo.paused) {
+        splashVideo.play().catch(() => {});
+        if (splashAudioBtn) {
+          splashAudioBtn.textContent = splashVideo.muted ? "🔊 UNMUTE" : "🔇 MUTE";
+          splashAudioBtn.classList.remove("pulse");
+        }
+      }
     });
   }
 
   window.addEventListener("keydown", (e) => {
     if (splashActive) {
-      endSplash();
+      if (e.key === "Escape") {
+        endSplash();
+      }
     } else if (!mainMenuScreen.classList.contains("hidden")) {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -699,7 +724,7 @@ export function createDesktopShell(rootElement, profile) {
     desktopScreen.classList.remove("hidden");
   }
 
-  function showLoginScreen() {
+  function showLoginScreen(targetSystem = null) {
     splashScreen.classList.add("hidden");
     mainMenuScreen.classList.add("hidden");
     menuCanvasController.stop();
@@ -707,7 +732,13 @@ export function createDesktopShell(rootElement, profile) {
     loginScreen.classList.remove("hidden");
     loginPassword.value = "";
     loginError.textContent = "";
-    loginSystem.textContent = profile.distroName + " · Local test computer";
+    if (targetSystem) {
+      const name = targetSystem.hostname || targetSystem.name || profile.distroName;
+      const desc = targetSystem.role || (targetSystem.ip ? `${name} (${targetSystem.ip})` : `${name} · System Console`);
+      loginSystem.textContent = desc;
+    } else {
+      loginSystem.textContent = profile.distroName + " · Local test computer";
+    }
     loginUser.focus();
   }
 
@@ -1288,6 +1319,8 @@ export function createDesktopShell(rootElement, profile) {
     openNano,
     closeNano,
     isNanoOpen,
+    triggerNanoSave,
+    triggerNanoExit,
     setTerminalTitle,
     setKnownLogins
   };

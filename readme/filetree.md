@@ -12,6 +12,9 @@ DemicubeOS/
 ├── src/                        # Source code for the game engine & UI
 ├── docs/                       # Documentation files and packaging plans
 ├── readme/                     # Developer guides (this folder)
+│   ├── filetree.md             # File tree & architectural navigation
+│   ├── projectgoals.md         # Roadmap, milestones, & completed features
+│   └── groups-and-permissions.md # User groups, permissions, & registry documentation
 ├── scripts/                    # Build and deployment scripts (Vercel / Cloud Run)
 ├── music/                      # Audio files for in-game music player
 ├── index.html                  # Main entry point for the web application
@@ -163,6 +166,7 @@ src/
 │   ├── os-sequence.js      # Dynamic OS-specific boot, shutdown, BSOD generators
 │   ├── window-manager.js   # Window hierarchy, dragging, z-index, and focus
 │   ├── file-system.js      # In-memory virtual Unix file system & permissions
+│   ├── group-manager.js    # User group definitions, registry serializer/parser (/etc/group/system_groups.reg)
 │   ├── login-manager.js    # User authentication & session persistence
 │   ├── resource-manager.js # RAM calculation, process allocation, OOM crash
 │   ├── system-loader.js    # JSON system & filesystem loader
